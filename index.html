@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="theme-color" content="#1E3A5F"/>
+<title>Fly</title>
+<style>
+/* ─── TOKENS ─────────────────────────────────────────── */
+:root{
+  --navy:#1E3A5F; --navy2:#2C5282;
+  --teal:#0E9F8C; --teal2:#0C8A7A;
+  --amber:#D97706; --red:#DC2626; --purple:#7C3AED;
+  --bg:#F1F5F9; --card:#FFFFFF; --card2:#F8FAFC;
+  --border:#E2E8F0; --border2:#CBD5E1;
+  --txt:#0F172A; --muted:#64748B; --hint:#94A3B8;
+  --r:12px; --rlg:16px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+
+/* ─── RESET ──────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html{height:100%;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  background:var(--bg); color:var(--txt);
+  font-size:15px; line-height:1.5;
+  height:100%; overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ─── TELA DE LOGIN ──────────────────────────────────── */
+#login-screen {
+  position: fixed; inset: 0; z-index: 9999;
+  background-color: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.login-card {
+  background: var(--card); padding: 40px 32px; border-radius: var(--rlg);
+  width: 100%; max-width: 400px;
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+  border: 1px solid var(--border);
+}
+.login-brand { text-align: center; margin-bottom: 32px; }
+.login-icon {
+  width: 48px; height: 48px; background: var(--navy); border-radius: 14px;
+  display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; color: #fff;
+  box-shadow: 0 4px 14px rgba(30, 58, 95, 0.4);
+}
+.login-icon svg { width: 24px; height: 24px; fill: currentColor; }
+.login-brand h1 { font-size: 24px; font-weight: 700; color: var(--txt); }
+.login-brand p { font-size: 14px; color: var(--muted); margin-top: 4px; }
+
+.login-field { margin-bottom: 20px; display: flex; flex-direction: column; gap: 6px; }
+.login-field label { font-size: 13px; font-weight: 600; color: var(--txt); }
+.login-field input {
+  width: 100%; padding: 12px 16px; border: 1.5px solid var(--border2);
+  border-radius: 10px; background: var(--bg); font-size: 15px; color: var(--txt); outline: none;
+  transition: all 0.2s ease;
+}
+.login-field input:focus { border-color: var(--teal); background: var(--card); }
+
+.login-btn {
+  width: 100%; padding: 14px; background: var(--teal); color: #fff;
+  border: none; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px;
+  transition: opacity .15s, transform .1s;
+}
+.login-btn:active { transform: scale(0.97); }
+.login-spinner {
+  width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+  border-radius: 50%; animation: spin 0.8s linear infinite; display: none;
+}
+.login-btn.loading .login-text { display: none; }
+.login-btn.loading .login-spinner { display: block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── APP SHELL ─────────────────────────────────────── */
+#app{display:none; /* Inicia oculto até fazer login */ flex-direction:column;height:100dvh;height:100vh;}
+
+/* ─── HEADER ─────────────────────────────────────────── */
+.hdr{
+  background:var(--navy);
+  padding:0 16px;
+  padding-top:env(safe-area-inset-top,0);
+  height:calc(52px + env(safe-area-inset-top,0px));
+  display:flex;align-items:flex-end;padding-bottom:10px;
+  gap:10px;flex-shrink:0;
+  position:relative;z-index:50;
+}
+.hdr-icon{width:30px;height:30px;background:var(--teal);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.hdr-title{color:#fff;font-size:17px;font-weight:700;letter-spacing:-.3px;}
+.hdr-sub{color:rgba(255,255,255,.45);font-size:11px;margin-left:auto;align-self:center;}
+
+/* ─── SCROLL AREA ────────────────────────────────────── */
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
+.content{padding:16px 14px 24px;max-width:600px;margin:0 auto;}
+
+/* ─── BOTTOM NAV ─────────────────────────────────────── */
+.bnav{
+  background:var(--card);
+  border-top:1px solid var(--border);
+  display:flex;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  flex-shrink:0;
+  position:relative;z-index:50;
+}
+.bnav-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:8px 4px 6px;
+  background:none;border:none;cursor:pointer;
+  color:var(--hint);font-size:10px;font-weight:500;
+  gap:3px;transition:color .15s;min-height:54px;
+  -webkit-tap-highlight-color:transparent;
+}
+.bnav-btn.active{color:var(--teal);}
+.bnav-icon{font-size:20px;line-height:1;}
+
+/* ─── PAGE / SECTION ─────────────────────────────────── */
+.page{display:none;}
+.page.active{display:block;}
+
+/* ─── SECTION TITLE ──────────────────────────────────── */
+.sec-head{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.sec-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;}
+.si-blue{background:#DBEAFE;} .si-green{background:#D1FAE5;} .si-orange{background:#FEF3C7;} .si-purple{background:#EDE9FE;} .si-teal{background:#CCFBF1;}
+.sec-title{font-size:18px;font-weight:700;}
+.sec-sub{font-size:12px;color:var(--muted);margin-top:1px;}
+
+/* ─── CARD ───────────────────────────────────────────── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--rlg);padding:16px;margin-bottom:12px;}
+.card-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+
+/* ─── FORM ───────────────────────────────────────────── */
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;}
+.field:last-child{margin-bottom:0;}
+.field label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);}
+.field input,.field select,.field textarea{
+  background:var(--bg);border:1.5px solid var(--border2);
+  border-radius:10px;padding:11px 13px;
+  font-size:15px;font-family:inherit;color:var(--txt);
+  outline:none;transition:border-color .15s;width:100%;
+  -webkit-appearance:none;appearance:none;
+}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394A3B8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center;padding-right:36px;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--teal);background:var(--card);}
+.field textarea{resize:vertical;min-height:80px;line-height:1.5;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+/* ─── BUTTONS ────────────────────────────────────────── */
+.btn{
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  padding:13px 20px;border-radius:12px;
+  font-size:15px;font-weight:700;border:none;cursor:pointer;
+  transition:opacity .15s,transform .1s;width:100%;margin-top:4px;
+}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:var(--teal);color:#fff;}
+.btn-primary:hover{opacity:.9;}
+.btn-ghost{background:var(--bg);color:var(--muted);border:1.5px solid var(--border2);}
+.btn-row{display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);}
+.btn-row .btn{margin-top:0;}
+.btn-row .btn-ghost{width:auto;padding:13px 18px;flex-shrink:0;}
+
+/* ─── PILL FILTERS ───────────────────────────────────── */
+.pills{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin-bottom:14px;padding-bottom:2px;}
+.pills::-webkit-scrollbar{display:none;}
+.pill{flex-shrink:0;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid var(--border2);background:var(--card);color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;}
+.pill.active{background:var(--teal);color:#fff;border-color:var(--teal);}
+
+/* ─── STATS ──────────────────────────────────────────── */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--rlg);padding:12px 14px;}
+.stat-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--hint);}
+.stat-val{font-size:20px;font-weight:800;margin-top:3px;}
+.sv-blue{color:var(--navy2);} .sv-green{color:var(--teal);} .sv-orange{color:var(--amber);}
+
+/* ─── RECORD ─────────────────────────────────────────── */
+.rec{background:var(--card);border:1px solid var(--border);border-radius:var(--rlg);padding:14px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start;}
+.rec-body{flex:1;min-width:0;}
+.rec-title{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rec-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
+.rec-meta span{font-size:12px;color:var(--muted);}
+.rec-obs{font-size:12px;color:var(--hint);margin-top:4px;line-height:1.4;}
+.rec-side{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;}
+.rec-val{font-size:15px;font-weight:800;color:var(--teal);}
+.del-btn{width:32px;height:32px;border-radius:8px;background:var(--bg);border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:var(--hint);transition:all .15s;}
+.del-btn:active{background:#FEE2E2;border-color:#FECACA;color:var(--red);}
+
+/* ─── BADGE ──────────────────────────────────────────── */
+.badge{display:inline-flex;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;}
+.b-red{background:#FEE2E2;color:#991B1B;} .b-blue{background:#DBEAFE;color:#1E40AF;}
+.b-orange{background:#FEF3C7;color:#92400E;} .b-green{background:#D1FAE5;color:#065F46;}
+.b-purple{background:#EDE9FE;color:#4C1D95;} .b-teal{background:#CCFBF1;color:#134E4A;}
+.b-gray{background:#F1F5F9;color:#475569;}
+
+/* ─── EMPTY ──────────────────────────────────────────── */
+.empty{text-align:center;padding:48px 20px;color:var(--hint);}
+.empty-e{font-size:40px;margin-bottom:10px;opacity:.4;}
+.empty-t{font-size:14px;}
+
+/* ─── CALENDAR ───────────────────────────────────────── */
+.cal-hdr{background:var(--navy);border-radius:var(--rlg) var(--rlg) 0 0;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;}
+.cal-month{color:#fff;font-size:16px;font-weight:700;}
+.cal-nbtn{width:36px;height:36px;background:rgba(255,255,255,.12);border:none;border-radius:9px;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.cal-body{background:var(--card);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--rlg) var(--rlg);margin-bottom:14px;overflow:hidden;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);}
+.cal-dname{text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--hint);padding:9px 0 7px;border-bottom:1px solid var(--border);}
+.cal-cell{min-height:52px;padding:4px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);cursor:pointer;position:relative;transition:background .12s;}
+.cal-cell:nth-child(7n){border-right:none;}
+.cal-cell:active{background:#F0FDF4;}
+.cal-cell.other .cal-n{color:var(--hint);opacity:.35;}
+.cal-cell.today .cal-n{background:var(--navy);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:800;}
+.cal-cell.sel{background:#F0FDF4;}
+.cal-n{font-size:11px;font-weight:600;}
+.dots{display:flex;flex-wrap:wrap;gap:2px;margin-top:3px;}
+.dot{width:6px;height:6px;border-radius:50%;}
+.dg{background:var(--amber);} .ds{background:var(--red);} .de{background:var(--purple);} .do{background:var(--teal);}
+.cal-legend{display:flex;flex-wrap:wrap;gap:10px;padding:10px 14px;border-top:1px solid var(--border);background:var(--card2);}
+.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);}
+.leg-d{width:8px;height:8px;border-radius:50%;}
+
+/* day panel */
+.dpanel{background:var(--card);border:1px solid var(--border);border-radius:var(--rlg);padding:14px;margin-bottom:14px;}
+.dpanel-title{font-size:13px;font-weight:700;color:var(--teal);margin-bottom:10px;}
+.dev{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+.dev:last-child{border-bottom:none;}
+.dev-pip{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;}
+.dev-txt{font-size:13px;}
+.dev-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+
+/* ─── SCHEDULE TABLE ─────────────────────────────────── */
+.sched{width:100%;border-collapse:collapse;}
+.sched th{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--hint);font-weight:700;padding:8px 10px;text-align:left;border-bottom:1px solid var(--border);background:var(--card2);}
+.sched td{padding:10px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:top;}
+.sched tr:last-child td{border-bottom:none;}
+
+/* ─── OBS CARD ───────────────────────────────────────── */
+.obs-card{background:var(--card);border:1px solid var(--border);border-radius:var(--rlg);padding:14px;margin-bottom:8px;}
+.obs-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.obs-date{font-size:12px;font-weight:700;color:var(--muted);}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px;}
+.chip{background:var(--card2);border:1px solid var(--border);border-radius:9px;padding:7px 10px;}
+.chip-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.3px;color:var(--hint);}
+.chip-val{font-size:13px;font-weight:700;margin-top:1px;}
+.obs-note{font-size:13px;color:var(--muted);line-height:1.5;}
+
+/* ─── TOAST ──────────────────────────────────────────── */
+.toast{
+  position:fixed;bottom:calc(70px + env(safe-area-inset-bottom,0px) + 10px);
+  left:50%;transform:translateX(-50%) translateY(10px);
+  background:var(--txt);color:#fff;
+  padding:10px 20px;border-radius:24px;
+  font-size:13px;font-weight:600;
+  z-index:999;opacity:0;transition:opacity .25s,transform .25s;
+  pointer-events:none;white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ─── MODAL ──────────────────────────────────────────── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:flex-end;justify-content:center;}
+.sheet{background:var(--card);border-radius:20px 20px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));width:100%;max-width:600px;}
+.sheet-title{font-size:16px;font-weight:700;margin-bottom:8px;}
+.sheet-body{font-size:14px;color:var(--muted);margin-bottom:20px;line-height:1.5;}
+.sheet-btns{display:flex;flex-direction:column;gap:8px;}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="login-icon">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+        </svg>
+      </div>
+      <h1>Fly</h1>
+      <p>Acesse sua conta para continuar</p>
+    </div>
+    <form id="flyLogin">
+      <div class="login-field">
+        <label for="usr">Usuário</label>
+        <input type="text" id="usr" value="Fly" autocomplete="username" required>
+      </div>
+      <div class="login-field">
+        <label for="pwd">Senha</label>
+        <input type="password" id="pwd" value="1234" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="login-btn" id="submitBtn">
+        <span class="login-text">Entrar no sistema</span>
+        <div class="login-spinner"></div>
+      </button>
+    </form>
+  </div>
+</div>
+
+<div id="app">
+
+<header class="hdr">
+  <div class="hdr-icon">✈️</div>
+  <span class="hdr-title">Fly</span>
+  <span class="hdr-sub">dados salvos no aparelho</span>
+</header>
+
+<div class="scroll" id="scroll">
+<div class="content">
+
+  <div class="page active" id="page-cal">
+    <div class="sec-head">
+      <div class="sec-icon si-blue">📅</div>
+      <div><div class="sec-title">Calendário</div><div class="sec-sub">Todos os eventos</div></div>
+    </div>
+    <div class="cal-hdr">
+      <button class="cal-nbtn" onclick="calMove(-1)">‹</button>
+      <div class="cal-month" id="cal-label">–</div>
+      <button class="cal-nbtn" onclick="calMove(1)">›</button>
+    </div>
+    <div class="cal-body">
+      <div class="cal-grid" id="cal-names"></div>
+      <div class="cal-grid" id="cal-cells"></div>
+      <div class="cal-legend">
+        <div class="leg"><div class="leg-d" style="background:var(--amber)"></div>Gastos</div>
+        <div class="leg"><div class="leg-d" style="background:var(--red)"></div>Saúde</div>
+        <div class="leg"><div class="leg-d" style="background:var(--purple)"></div>Escolar</div>
+        <div class="leg"><div class="leg-d" style="background:var(--teal)"></div>Observações</div>
+      </div>
+    </div>
+    <div id="day-panel"></div>
+  </div>
+
+  <div class="page" id="page-gastos">
+    <div class="sec-head">
+      <div class="sec-icon si-orange">💰</div>
+      <div><div class="sec-title">Gastos</div><div class="sec-sub">Medicamentos · Roupas · Material · Outros</div></div>
+    </div>
+    <div class="stats" id="gstats"></div>
+    <div class="card">
+      <div class="card-title">Registrar gasto</div>
+      <div class="field"><label>Categoria</label>
+        <select id="g-cat">
+          <option value="med">💊 Medicamentos</option>
+          <option value="roup">👕 Roupas</option>
+          <option value="mat">📚 Material escolar</option>
+          <option value="outros">🗂️ Outros</option>
+        </select></div>
+      <div class="row2">
+        <div class="field"><label>Data</label><input type="date" id="g-data"/></div>
+        <div class="field"><label>Valor (R$)</label><input type="number" id="g-valor" min="0" step="0.01" placeholder="0,00" inputmode="decimal"/></div>
+      </div>
+      <div class="field"><label>Descrição</label><input type="text" id="g-desc" placeholder="Ex: Paracetamol 500mg"/></div>
+      <div class="row2">
+        <div class="field"><label>Pago por</label>
+          <select id="g-quem"><option value="Responsável A">Resp. A</option><option value="Responsável B">Resp. B</option></select></div>
+        <div class="field"><label>Nota / comprovante</label><input type="text" id="g-nf" placeholder="Opcional"/></div>
+      </div>
+      <div class="field"><label>Observações</label><textarea id="g-obs" placeholder="Detalhes adicionais..."></textarea></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="clrForm('gastos')">Limpar</button>
+        <button class="btn btn-primary" onclick="saveGasto()">Salvar gasto</button>
+      </div>
+    </div>
+    <div class="pills" id="gpills">
+      <button class="pill active" onclick="filtG('todos',this)">Todos</button>
+      <button class="pill" onclick="filtG('med',this)">Medicamentos</button>
+      <button class="pill" onclick="filtG('roup',this)">Roupas</button>
+      <button class="pill" onclick="filtG('mat',this)">Material</button>
+      <button class="pill" onclick="filtG('outros',this)">Outros</button>
+    </div>
+    <div id="glist"></div>
+  </div>
+
+  <div class="page" id="page-saude">
+    <div class="sec-head">
+      <div class="sec-icon si-green">🏥</div>
+      <div><div class="sec-title">Saúde</div><div class="sec-sub">Consultas · Exames · Vacinas</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Registrar evento de saúde</div>
+      <div class="field"><label>Tipo</label>
+        <select id="s-tipo">
+          <option value="consulta">🩺 Consulta médica</option>
+          <option value="exame">🔬 Exame</option>
+          <option value="vacina">💉 Vacina</option>
+          <option value="medcont">💊 Medicamento contínuo</option>
+          <option value="emerg">🚑 Urgência / Emergência</option>
+        </select></div>
+      <div class="row2">
+        <div class="field"><label>Data</label><input type="date" id="s-data"/></div>
+        <div class="field"><label>Horário</label><input type="time" id="s-hora"/></div>
+      </div>
+      <div class="field"><label>Especialidade / Exame</label><input type="text" id="s-espec" placeholder="Ex: Pediatria, Hemograma"/></div>
+      <div class="field"><label>Médico(a) / Local</label><input type="text" id="s-medico" placeholder="Ex: Dr. Silva – UPA Sul"/></div>
+      <div class="field"><label>Resultado / Status</label><input type="text" id="s-res" placeholder="Ex: Normal, Aguardando laudo"/></div>
+      <div class="field"><label>Observações (sintomas, prescrições, recomendações)</label><textarea id="s-obs" placeholder="Descreva sintomas, medicamentos prescritos..."></textarea></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="clrForm('saude')">Limpar</button>
+        <button class="btn btn-primary" onclick="saveSaude()">Salvar</button>
+      </div>
+    </div>
+    <div class="pills" id="spills">
+      <button class="pill active" onclick="filtS('todos',this)">Todos</button>
+      <button class="pill" onclick="filtS('consulta',this)">Consultas</button>
+      <button class="pill" onclick="filtS('exame',this)">Exames</button>
+      <button class="pill" onclick="filtS('vacina',this)">Vacinas</button>
+      <button class="pill" onclick="filtS('medcont',this)">Medicamentos</button>
+      <button class="pill" onclick="filtS('emerg',this)">Urgências</button>
+    </div>
+    <div id="slist"></div>
+  </div>
+
+  <div class="page" id="page-escolar">
+    <div class="sec-head">
+      <div class="sec-icon si-purple">🎒</div>
+      <div><div class="sec-title">Escolar</div><div class="sec-sub">Provas · Atividades · Grade horária</div></div>
+    </div>
+    <div class="pills" id="etabs">
+      <button class="pill active" onclick="escTab('ativ',this)">Atividades e provas</button>
+      <button class="pill" onclick="escTab('grade',this)">Grade horária</button>
+    </div>
+
+    <div id="esc-ativ">
+      <div class="card">
+        <div class="card-title">Registrar atividade / prova</div>
+        <div class="field"><label>Tipo</label>
+          <select id="e-tipo">
+            <option value="prova">📝 Prova</option>
+            <option value="trabalho">📋 Trabalho / Apresentação</option>
+            <option value="atividade">✏️ Atividade avaliativa</option>
+            <option value="evento">🎭 Evento escolar</option>
+            <option value="reuniao">👨‍👩‍👧 Reunião de pais</option>
+            <option value="excursao">🚌 Excursão</option>
+          </select></div>
+        <div class="row2">
+          <div class="field"><label>Data</label><input type="date" id="e-data"/></div>
+          <div class="field"><label>Horário</label><input type="time" id="e-hora"/></div>
+        </div>
+        <div class="field"><label>Matéria</label><input type="text" id="e-mat" placeholder="Ex: Matemática"/></div>
+        <div class="field"><label>Descrição / Conteúdo</label><textarea id="e-desc" placeholder="Conteúdo da prova, material necessário..."></textarea></div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="clrForm('esc')">Limpar</button>
+          <button class="btn btn-primary" onclick="saveAtiv()">Salvar</button>
+        </div>
+      </div>
+      <div class="pills" id="apills">
+        <button class="pill active" onclick="filtA('todos',this)">Todos</button>
+        <button class="pill" onclick="filtA('prova',this)">Provas</button>
+        <button class="pill" onclick="filtA('trabalho',this)">Trabalhos</button>
+        <button class="pill" onclick="filtA('evento',this)">Eventos</button>
+        <button class="pill" onclick="filtA('reuniao',this)">Reuniões</button>
+      </div>
+      <div id="alist"></div>
+    </div>
+
+    <div id="esc-grade" style="display:none">
+      <div class="card">
+        <div class="card-title">Adicionar aula</div>
+        <div class="field"><label>Dia da semana</label>
+          <select id="h-dia">
+            <option>Segunda-feira</option><option>Terça-feira</option><option>Quarta-feira</option>
+            <option>Quinta-feira</option><option>Sexta-feira</option><option>Sábado</option>
+          </select></div>
+        <div class="row2">
+          <div class="field"><label>Início</label><input type="time" id="h-ini"/></div>
+          <div class="field"><label>Fim</label><input type="time" id="h-fim"/></div>
+        </div>
+        <div class="field"><label>Matéria</label><input type="text" id="h-mat" placeholder="Ex: Português"/></div>
+        <div class="row2">
+          <div class="field"><label>Professor(a)</label><input type="text" id="h-prof" placeholder="Opcional"/></div>
+          <div class="field"><label>Sala</label><input type="text" id="h-sala" placeholder="Ex: 3A"/></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="clrForm('grade')">Limpar</button>
+          <button class="btn btn-primary" onclick="saveGrade()">Adicionar</button>
+        </div>
+      </div>
+      <div id="glist2"></div>
+    </div>
+  </div>
+
+  <div class="page" id="page-obs">
+    <div class="sec-head">
+      <div class="sec-icon si-teal">📝</div>
+      <div><div class="sec-title">Observações</div><div class="sec-sub">Sono · Alimentação · Humor · Saúde</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Registrar observação do dia</div>
+      <div class="field"><label>Data</label><input type="date" id="o-data"/></div>
+      <div class="row2">
+        <div class="field"><label>Sono</label>
+          <select id="o-sono">
+            <option value="">— não informar —</option>
+            <option value="Muito bom 😴">Muito bom 😴</option>
+            <option value="Bom 🙂">Bom 🙂</option>
+            <option value="Regular 😐">Regular 😐</option>
+            <option value="Ruim 😟">Ruim 😟</option>
+            <option value="Muito ruim 😫">Muito ruim 😫</option>
+          </select></div>
+        <div class="field"><label>Alimentação</label>
+          <select id="o-comeu">
+            <option value="">— não informar —</option>
+            <option value="Comeu tudo 🍽️">Comeu tudo 🍽️</option>
+            <option value="Comeu bem ✅">Comeu bem ✅</option>
+            <option value="Comeu pouco ⚠️">Comeu pouco ⚠️</option>
+            <option value="Não comeu ❌">Não comeu ❌</option>
+          </select></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Humor</label>
+          <select id="o-humor">
+            <option value="">— não informar —</option>
+            <option value="Animado(a) 😁">Animado(a) 😁</option>
+            <option value="Feliz 😊">Feliz 😊</option>
+            <option value="Tranquilo(a) 😐">Tranquilo(a) 😐</option>
+            <option value="Agitado(a) 😤">Agitado(a) 😤</option>
+            <option value="Triste 😢">Triste 😢</option>
+          </select></div>
+        <div class="field"><label>Temperatura</label><input type="text" id="o-febre" placeholder="Ex: 37.2°C"/></div>
+      </div>
+      <div class="field"><label>Remédios tomados</label><input type="text" id="o-remed" placeholder="Nomes e horários"/></div>
+      <div class="field"><label>Notas gerais (comportamento, recados)</label><textarea id="o-nota" placeholder="Informações importantes para o outro responsável..."></textarea></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="clrForm('obs')">Limpar</button>
+        <button class="btn btn-primary" onclick="saveObs()">Salvar observação</button>
+      </div>
+    </div>
+    <div id="olist"></div>
+  </div>
+
+</div></div><nav class="bnav">
+  <button class="bnav-btn active" id="btn-cal" onclick="goPage('cal')">
+    <span class="bnav-icon">📅</span>Calendário
+  </button>
+  <button class="bnav-btn" id="btn-gastos" onclick="goPage('gastos')">
+    <span class="bnav-icon">💰</span>Gastos
+  </button>
+  <button class="bnav-btn" id="btn-saude" onclick="goPage('saude')">
+    <span class="bnav-icon">🏥</span>Saúde
+  </button>
+  <button class="bnav-btn" id="btn-escolar" onclick="goPage('escolar')">
+    <span class="bnav-icon">🎒</span>Escolar
+  </button>
+  <button class="bnav-btn" id="btn-obs" onclick="goPage('obs')">
+    <span class="bnav-icon">📝</span>Obs.
+  </button>
+</nav>
+
+</div><div class="toast" id="toast"></div>
+
+<div class="overlay" id="modal" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="sheet">
+    <div class="sheet-title">Excluir registro?</div>
+    <div class="sheet-body">Essa ação não pode ser desfeita.</div>
+    <div class="sheet-btns">
+      <button class="btn" style="background:var(--red);color:#fff" onclick="confirmDel()">Excluir</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════
+   LÓGICA DE LOGIN "FLY"
+═══════════════════════════════════════ */
+document.getElementById('flyLogin').addEventListener('submit', function(e) {
+  e.preventDefault();
+  
+  const u = document.getElementById('usr').value;
+  const p = document.getElementById('pwd').value;
+  const btn = document.getElementById('submitBtn');
+
+  if (u === 'Fly' && p === '1234') {
+    btn.classList.add('loading');
+    btn.disabled = true;
+    
+    setTimeout(() => {
+      // Esconde a tela de login
+      document.getElementById('login-screen').style.display = 'none';
+      // Mostra o app completo
+      document.getElementById('app').style.display = 'flex';
+      
+      // Força a re-renderização do calendário para ajustar dimensões se necessário
+      renderCal();
+    }, 1200);
+  } else {
+    alert('Usuário ou senha incorretos! Use Fly / 1234.');
+  }
+});
+
+/* ═══════════════════════════════════════
+   STORAGE — IndexedDB com fallback RAM
+═══════════════════════════════════════ */
+const STORE_NAME = 'coparent';
+const DB_NAME    = 'CoParentDB';
+const DB_VER     = 1;
+let _db = null;
+const _ram = {}; // fallback in-memory
+
+function openDB(){
+  return new Promise((res,rej)=>{
+    if(_db){ res(_db); return; }
+    if(!window.indexedDB){ res(null); return; }
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if(!db.objectStoreNames.contains(STORE_NAME)){
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+    req.onsuccess = e => { _db = e.target.result; res(_db); };
+    req.onerror   = ()=> { res(null); };
+  });
+}
+
+async function dbGet(key){
+  try{
+    const db = await openDB();
+    if(!db) return _ram[key] ?? null;
+    return new Promise(res=>{
+      const tx = db.transaction(STORE_NAME,'readonly');
+      const req = tx.objectStore(STORE_NAME).get(key);
+      req.onsuccess = ()=> res(req.result ?? null);
+      req.onerror   = ()=> res(_ram[key] ?? null);
+    });
+  } catch{ return _ram[key] ?? null; }
+}
+
+async function dbSet(key,val){
+  try{
+    _ram[key] = val;
+    const db = await openDB();
+    if(!db) return;
+    return new Promise(res=>{
+      const tx = db.transaction(STORE_NAME,'readwrite');
+      tx.objectStore(STORE_NAME).put(val,key);
+      tx.oncomplete = res;
+      tx.onerror    = res;
+    });
+  } catch{}
+}
+
+async function loadKey(k){ const v = await dbGet(k); return Array.isArray(v) ? v : []; }
+async function saveKey(k,v){ await dbSet(k,v); }
+
+const K = { gastos:'cp_gastos', saude:'cp_saude', ativ:'cp_ativ', grade:'cp_grade', obs:'cp_obs' };
+
+/* ═══════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════ */
+const uid    = ()=> Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+const todayS = ()=> new Date().toISOString().slice(0,10);
+const fmtD   = s=>{ if(!s) return '–'; const[y,m,d]=s.split('-'); return `${d}/${m}/${y}`; };
+const fmtR   = v=> 'R$ '+parseFloat(v||0).toFixed(2).replace('.',',');
+const esc    = s=> String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const $      = id=> document.getElementById(id);
+const val    = id=> $(id)?.value?.trim()||'';
+
+let toastTm;
+function toast(m){ const e=$('toast'); e.textContent=m; e.classList.add('show'); clearTimeout(toastTm); toastTm=setTimeout(()=>e.classList.remove('show'),2500); }
+
+let _pendDel=null;
+function askDel(fn){ _pendDel=fn; $('modal').style.display='flex'; }
+function closeModal(){ $('modal').style.display='none'; _pendDel=null; }
+function confirmDel(){ if(_pendDel){_pendDel();} closeModal(); }
+
+/* ═══════════════════════════════════════
+   NAV
+═══════════════════════════════════════ */
+const PAGES = ['cal','gastos','saude','escolar','obs'];
+function goPage(id){
+  PAGES.forEach(p=>{
+    $('page-'+p).classList.toggle('active',p===id);
+    $('btn-'+p).classList.toggle('active',p===id);
+  });
+  $('scroll').scrollTop=0;
+  if(id==='cal')    renderCal();
+  if(id==='gastos') { renderGStats(); renderGList(); }
+  if(id==='saude')  renderSList();
+  if(id==='escolar') renderAList();
+  if(id==='obs')    renderOList();
+}
+
+/* ═══════════════════════════════════════
+   FORM UTILS
+═══════════════════════════════════════ */
+const FORM_IDS = {
+  gastos:['g-cat','g-data','g-desc','g-valor','g-quem','g-nf','g-obs'],
+  saude: ['s-tipo','s-data','s-hora','s-espec','s-medico','s-res','s-obs'],
+  esc:   ['e-tipo','e-data','e-hora','e-mat','e-desc'],
+  grade: ['h-dia','h-ini','h-fim','h-mat','h-prof','h-sala'],
+  obs:   ['o-data','o-sono','o-comeu','o-humor','o-febre','o-remed','o-nota']
+};
+function clrForm(w){ (FORM_IDS[w]||[]).forEach(id=>{ const e=$(id); if(!e) return; if(e.tagName==='SELECT') e.selectedIndex=0; else e.value=''; }); }
+function setDates(){ ['g-data','s-data','e-data','o-data'].forEach(id=>{ const e=$(id); if(e&&!e.value) e.value=todayS(); }); }
+
+/* ═══════════════════════════════════════
+   MAPS
+═══════════════════════════════════════ */
+const GC = {med:'💊 Medicamentos',roup:'👕 Roupas',mat:'📚 Material',outros:'🗂️ Outros'};
+const GB = {med:'b-red',roup:'b-blue',mat:'b-purple',outros:'b-gray'};
+const SC = {consulta:'🩺 Consulta',exame:'🔬 Exame',vacina:'💉 Vacina',medcont:'💊 Med.contínuo',emerg:'🚑 Urgência'};
+const SB = {consulta:'b-teal',exame:'b-blue',vacina:'b-orange',medcont:'b-red',emerg:'b-red'};
+const EC = {prova:'📝 Prova',trabalho:'📋 Trabalho',atividade:'✏️ Atividade',evento:'🎭 Evento',reuniao:'👨‍👩‍👧 Reunião',excursao:'🚌 Excursão'};
+const EB = {prova:'b-red',trabalho:'b-blue',atividade:'b-orange',evento:'b-purple',reuniao:'b-teal',excursao:'b-green'};
+const DIAS  = ['Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const DNS   = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+/* ═══════════════════════════════════════
+   GASTOS
+═══════════════════════════════════════ */
+let gFilt='todos';
+
+async function saveGasto(){
+  const data=val('g-data'),desc=val('g-desc');
+  if(!data||!desc){ toast('⚠️ Preencha data e descrição'); return; }
+  const lista = await loadKey(K.gastos);
+  lista.unshift({id:uid(),cat:val('g-cat'),data,desc,valor:parseFloat(val('g-valor'))||0,quem:val('g-quem'),nf:val('g-nf'),obs:val('g-obs')});
+  await saveKey(K.gastos,lista);
+  clrForm('gastos'); setDates();
+  toast('✅ Gasto salvo!');
+  renderGStats(); renderGList(); calDotsDirty=true; if($('page-cal').classList.contains('active')) renderCal();
+}
+
+async function renderGStats(){
+  const lista = await loadKey(K.gastos);
+  const tot = lista.reduce((s,g)=>s+g.valor,0);
+  const now=new Date(),mes=now.getMonth(),ano=now.getFullYear();
+  const mes_tot = lista.filter(g=>{ if(!g.data) return false; const d=new Date(g.data+'T12:00'); return d.getMonth()===mes&&d.getFullYear()===ano; }).reduce((s,g)=>s+g.valor,0);
+  const pA = lista.filter(g=>g.quem==='Responsável A').reduce((s,g)=>s+g.valor,0);
+  const pB = lista.filter(g=>g.quem==='Responsável B').reduce((s,g)=>s+g.valor,0);
+  $('gstats').innerHTML=`
+    <div class="stat"><div class="stat-lbl">Total geral</div><div class="stat-val sv-blue">${fmtR(tot)}</div></div>
+    <div class="stat"><div class="stat-lbl">Este mês</div><div class="stat-val sv-orange">${fmtR(mes_tot)}</div></div>
+    <div class="stat"><div class="stat-lbl">Resp. A</div><div class="stat-val">${fmtR(pA)}</div></div>
+    <div class="stat"><div class="stat-lbl">Resp. B</div><div class="stat-val">${fmtR(pB)}</div></div>`;
+}
+
+function filtG(f,btn){ gFilt=f; $('gpills').querySelectorAll('.pill').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); renderGList(); }
+
+async function renderGList(){
+  const all = await loadKey(K.gastos);
+  const lista = gFilt==='todos' ? all : all.filter(g=>g.cat===gFilt);
+  const el=$('glist');
+  if(!lista.length){ el.innerHTML=`<div class="empty"><div class="empty-e">💰</div><div class="empty-t">Nenhum gasto registrado.</div></div>`; return; }
+  el.innerHTML=lista.map(g=>`
+    <div class="rec">
+      <div class="rec-body">
+        <div class="rec-title">${esc(g.desc)}</div>
+        <div class="rec-meta"><span>📅 ${fmtD(g.data)}</span><span>👤 ${esc(g.quem)}</span>${g.nf?`<span>🧾 ${esc(g.nf)}</span>`:''}</div>
+        ${g.obs?`<div class="rec-obs">💬 ${esc(g.obs)}</div>`:''}
+      </div>
+      <div class="rec-side">
+        <div class="rec-val">${fmtR(g.valor)}</div>
+        <span class="badge ${GB[g.cat]||'b-gray'}">${GC[g.cat]||g.cat}</span>
+        <button class="del-btn" onclick="askDel(()=>delGasto('${g.id}'))">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+async function delGasto(id){
+  const lista = await loadKey(K.gastos);
+  await saveKey(K.gastos, lista.filter(g=>g.id!==id));
+  toast('🗑️ Removido'); renderGStats(); renderGList(); calDotsDirty=true; if($('page-cal').classList.contains('active')) renderCal();
+}
+
+/* ═══════════════════════════════════════
+   SAÚDE
+═══════════════════════════════════════ */
+let sFilt='todos';
+
+async function saveSaude(){
+  const data=val('s-data');
+  if(!data){ toast('⚠️ Preencha a data'); return; }
+  const lista = await loadKey(K.saude);
+  lista.unshift({id:uid(),tipo:val('s-tipo'),data,hora:val('s-hora'),espec:val('s-espec'),medico:val('s-medico'),res:val('s-res'),obs:val('s-obs')});
+  await saveKey(K.saude,lista);
+  clrForm('saude'); setDates();
+  toast('✅ Registro salvo!');
+  renderSList(); calDotsDirty=true; if($('page-cal').classList.contains('active')) renderCal();
+}
+
+function filtS(f,btn){ sFilt=f; $('spills').querySelectorAll('.pill').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); renderSList(); }
+
+async function renderSList(){
+  const all = await loadKey(K.saude);
+  const lista = sFilt==='todos' ? all : all.filter(s=>s.tipo===sFilt);
+  const el=$('slist');
+  if(!lista.length){ el.innerHTML=`<div class="empty"><div class="empty-e">🏥</div><div class="empty-t">Nenhum evento registrado.</div></div>`; return; }
+  el.innerHTML=lista.map(s=>`
+    <div class="rec">
+      <div class="rec-body">
+        <div class="rec-title">${esc(s.espec)||SC[s.tipo]||'–'}</div>
+        <div class="rec-meta"><span>📅 ${fmtD(s.data)}</span>${s.hora?`<span>⏰ ${s.hora}</span>`:''}${s.medico?`<span>👨‍⚕️ ${esc(s.medico)}</span>`:''}</div>
+        ${s.res?`<div class="rec-obs">📄 ${esc(s.res)}</div>`:''}
+        ${s.obs?`<div class="rec-obs">💬 ${esc(s.obs)}</div>`:''}
+      </div>
+      <div class="rec-side">
+        <span class="badge ${SB[s.tipo]||'b-teal'}">${SC[s.tipo]||s.tipo}</span>
+        <button class="del-btn" onclick="askDel(()=>delSaude('${s.id}'))">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+async function delSaude(id){
+  const lista = await loadKey(K.saude);
+  await saveKey(K.saude, lista.filter(s=>s.id!==id));
+  toast('🗑️ Removido'); renderSList(); calDotsDirty=true; if($('page-cal').classList.contains('active')) renderCal();
+}
+
+/* ═══════════════════════════════════════
+   ESCOLAR – ATIVIDADES
+═══════════════════════════════════════ */
+let aFilt='todos';
+
+function escTab(tab,btn){
+  $('etabs').querySelectorAll('.pill').forEach(b=>b.classList.remove('active')); btn.classList.add('active');
+  $('esc-ativ').style.display  = tab==='ativ'  ? 'block':'none';
+  $('esc-grade').style.display = tab==='grade' ? 'block':'none';
+  if(tab==='grade') renderGradeList();
+}
+
+async function saveAtiv(){
+  const data=val('e-data');
+  if(!data){ toast('⚠️ Preencha a data'); return; }
+  const lista = await loadKey(K.ativ);
+  lista.unshift({id:uid(),tipo:val('e-tipo'),data,hora:val('e-hora'),mat:val('e-mat'),desc:val('e-desc')});
+  await saveKey(K.ativ,lista);
+  clrForm('esc'); setDates();
+  toast('✅ Atividade salva!');
+  renderAList(); calDotsDirty=true; if($('page-cal').classList.contains('active')) renderCal();
+}
+
+function filtA(f,btn){ aFilt=f; $('apills').querySelectorAll('.pill').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); renderAList(); }
+
+async function renderAList(){
+  const all = await loadKey(K.ativ);
+  const lista = (aFilt==='todos'?all:all.filter(a=>a.tipo===aFilt)).sort((a,b)=>(a.data||'')>(b.data||'')?1:-1);
+  const hoje=todayS();
+  const el=$('alist');
+  if(!lista.length){ el.innerHTML=`<div class="empty"><div class="empty-e">🎒</div><div class="empty-t">Nenhuma atividade registrada.</div></div>`; return; }
+  el.innerHTML=lista.map(a=>{
+    const past=a.data&&a.data<hoje;
+    return`<div class="rec" style="${past?'opacity:.55':''}">
+      <div class="rec-body">
+        <div class="rec-title">${a.mat?esc(a.mat)+' — ':''}${EC[a.tipo]||a.tipo}</div>
+        <div class="rec-meta"><span>📅 ${fmtD(a.data)}</span>${a.hora?`<span>⏰ ${a.hora}</span>`:''}${past?`<span style="color:var(--hint)">✓ Concluído</span>`:''}</div>
+        ${a.desc?`<div class="rec-obs">📋 ${esc(a.desc)}</div>`:''}
+      </div>
+      <div class="rec-side">
+        <span class="badge ${EB[a.tipo]||'b-gray'}">${EC[a.tipo]||a.tipo}</span>
+        <button class="del-btn" onclick="askDel(()=>delAtiv('${a.id}'))">✕</button>
+      </div>
+    </div>`;}).join('');
+}
+
+async function delAtiv(id){
+  const lista = await loadKey(K.ativ);
+  await saveKey(K.ativ, lista.filter(a=>a.id!==id));
+  toast('🗑️ Removido'); renderAList(); calDotsDirty=true; if($('page-cal').classList.contains('active')) renderCal();
+}
+
+/* ═══════════════════════════════════════
+   ESCOLAR – GRADE
+═══════════════════════════════════════ */
+async function saveGrade(){
+  const mat=val('h-mat');
+  if(!mat){ toast('⚠️ Preencha a matéria'); return; }
+  const lista = await loadKey(K.grade);
+  lista.push({id:uid(),dia:val('h-dia'),ini:val('h-ini'),fim:val('h-fim'),mat,prof:val('h-prof'),sala:val('h-sala')});
+  await saveKey(K.grade,lista);
+  clrForm('grade');
+  toast('✅ Aula adicionada!');
+  renderGradeList();
+}
+
+async function renderGradeList(){
+  const lista = await loadKey(K.grade);
+  const el=$('glist2');
+  if(!lista.length){ el.innerHTML=`<div class="empty"><div class="empty-e">📅</div><div class="empty-t">Grade horária vazia.</div></div>`; return; }
+  let html='';
+  DIAS.forEach(dia=>{
+    const aulas=lista.filter(h=>h.dia===dia).sort((a,b)=>(a.ini||'')>(b.ini||'')?1:-1);
+    if(!aulas.length) return;
+    html+=`<div class="card" style="padding:14px;margin-bottom:10px;">
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:10px;">${dia}</div>
+      <div style="overflow-x:auto;">
+      <table class="sched">
+        <thead><tr><th>Horário</th><th>Matéria</th><th>Prof.</th><th>Sala</th><th></th></tr></thead>
+        <tbody>${aulas.map(h=>`<tr>
+          <td>${h.ini||'–'}${h.fim?' – '+h.fim:''}</td>
+          <td><strong>${esc(h.mat)}</strong></td>
+          <td>${esc(h.prof)||'–'}</td>
+          <td>${esc(h.sala)||'–'}</td>
+          <td><button class="del-btn" onclick="askDel(()=>delGrade('${h.id}'))">✕</button></td>
+        </tr>`).join('')}</tbody>
+      </table></div></div>`;
+  });
+  el.innerHTML=html;
+}
+
+async function delGrade(id){
+  const lista = await loadKey(K.grade);
+  await saveKey(K.grade, lista.filter(h=>h.id!==id));
+  toast('🗑️ Removido'); renderGradeList();
+}
+
+/* ═══════════════════════════════════════
+   OBSERVAÇÕES
+═══════════════════════════════════════ */
+async function saveObs(){
+  const data=val('o-data');
+  if(!data){ toast('⚠️ Preencha a data'); return; }
+  const lista = await loadKey(K.obs);
+  lista.unshift({id:uid(),data,sono:val('o-sono'),comeu:val('o-comeu'),humor:val('o-humor'),febre:val('o-febre'),remed:val('o-remed'),nota:val('o-nota')});
+  await saveKey(K.obs,lista);
+  clrForm('obs'); setDates();
+  toast('✅ Observação salva!');
+  renderOList(); calDotsDirty=true; if($('page-cal').classList.contains('active')) renderCal();
+}
+
+async function renderOList(){
+  const lista = await loadKey(K.obs);
+  const el=$('olist');
+  if(!lista.length){ el.innerHTML=`<div class="empty"><div class="empty-e">📝</div><div class="empty-t">Nenhuma observação registrada.</div></div>`; return; }
+  el.innerHTML=lista.map(o=>{
+    const chips=[
+      o.sono  ?`<div class="chip"><div class="chip-lbl">Sono</div><div class="chip-val">${esc(o.sono)}</div></div>`:'',
+      o.comeu ?`<div class="chip"><div class="chip-lbl">Alimentação</div><div class="chip-val">${esc(o.comeu)}</div></div>`:'',
+      o.humor ?`<div class="chip"><div class="chip-lbl">Humor</div><div class="chip-val">${esc(o.humor)}</div></div>`:'',
+      o.febre ?`<div class="chip"><div class="chip-lbl">Temperatura</div><div class="chip-val">🌡️ ${esc(o.febre)}</div></div>`:'',
+      o.remed ?`<div class="chip"><div class="chip-lbl">Remédios</div><div class="chip-val">💊 ${esc(o.remed)}</div></div>`:''
+    ].filter(Boolean).join('');
+    return`<div class="obs-card">
+      <div class="obs-hdr">
+        <div class="obs-date">📅 ${fmtD(o.data)}</div>
+        <button class="del-btn" onclick="askDel(()=>delObs('${o.id}'))">✕</button>
+      </div>
+      ${chips?`<div class="chips">${chips}</div>`:''}
+      ${o.nota?`<div class="obs-note">💬 ${esc(o.nota)}</div>`:''}
+    </div>`;}).join('');
+}
+
+async function delObs(id){
+  const lista = await loadKey(K.obs);
+  await saveKey(K.obs, lista.filter(o=>o.id!==id));
+  toast('🗑️ Removido'); renderOList(); calDotsDirty=true; if($('page-cal').classList.contains('active')) renderCal();
+}
+
+/* ═══════════════════════════════════════
+   CALENDÁRIO
+═══════════════════════════════════════ */
+let calY=new Date().getFullYear(), calM=new Date().getMonth(), selD=null, calDotsDirty=true;
+let _dotsCache={};
+
+function calMove(d){ calM+=d; if(calM>11){calM=0;calY++;} if(calM<0){calM=11;calY--;} renderCal(); }
+
+async function getDots(){
+  if(!calDotsDirty) return _dotsCache;
+  const m={};
+  const add=(date,type)=>{ if(!date) return; const k=date.slice(0,10); if(!m[k]) m[k]=new Set(); m[k].add(type); };
+  (await loadKey(K.gastos)).forEach(g=>add(g.data,'g'));
+  (await loadKey(K.saude)).forEach(s=>add(s.data,'s'));
+  (await loadKey(K.ativ)).forEach(a=>add(a.data,'e'));
+  (await loadKey(K.obs)).forEach(o=>add(o.data,'o'));
+  _dotsCache=m; calDotsDirty=false;
+  return m;
+}
+
+async function renderCal(){
+  $('cal-label').textContent=MESES[calM]+' '+calY;
+  $('cal-names').innerHTML=DNS.map(d=>`<div class="cal-dname">${d}</div>`).join('');
+  const dots=await getDots();
+  const first=new Date(calY,calM,1).getDay();
+  const dim=new Date(calY,calM+1,0).getDate();
+  const prevDim=new Date(calY,calM,0).getDate();
+  const todayISO=todayS();
+  let cells='';
+  for(let i=0;i<first;i++){ const d=prevDim-first+1+i; cells+=mkCell(d,iso(calY,calM-1,d),true,dots,todayISO); }
+  for(let d=1;d<=dim;d++) cells+=mkCell(d,iso(calY,calM,d),false,dots,todayISO);
+  const tot=first+dim; const rem=tot%7===0?0:7-tot%7;
+  for(let i=1;i<=rem;i++) cells+=mkCell(i,iso(calY,calM+1,i),true,dots,todayISO);
+  $('cal-cells').innerHTML=cells;
+  if(selD) renderDayPanel(selD); else $('day-panel').innerHTML='';
+}
+
+function iso(y,m,d){ let rY=y,rM=m; if(rM>11){rM=0;rY++;} if(rM<0){rM=11;rY--;} return `${rY}-${String(rM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+
+function mkCell(d,isoStr,other,dots,todayISO){
+  let cls='cal-cell';
+  if(other) cls+=' other';
+  if(isoStr===todayISO) cls+=' today';
+  if(isoStr===selD) cls+=' sel';
+  const types=dots[isoStr]?[...dots[isoStr]]:[];
+  const dotH=types.map(t=>`<div class="dot d${t}"></div>`).join('');
+  return`<div class="${cls}" onclick="selectDay('${isoStr}')"><div class="cal-n">${d}</div>${dotH?`<div class="dots">${dotH}</div>`:''}</div>`;
+}
+
+function selectDay(isoStr){ selD = selD===isoStr ? null : isoStr; renderCal(); }
+
+async function renderDayPanel(isoStr){
+  const gastos=(await loadKey(K.gastos)).filter(g=>g.data===isoStr);
+  const saude=(await loadKey(K.saude)).filter(s=>s.data===isoStr);
+  const ativ=(await loadKey(K.ativ)).filter(a=>a.data===isoStr);
+  const obs=(await loadKey(K.obs)).filter(o=>o.data===isoStr);
+  const [y,m,d]=isoStr.split('-');
+  const title=`${parseInt(d)} de ${MESES[parseInt(m)-1]} de ${y}`;
+  let evs='';
+  gastos.forEach(g=>{ evs+=`<div class="dev"><div class="dev-pip" style="background:var(--amber)"></div><div><div class="dev-txt">${esc(g.desc)||'Gasto'} — ${fmtR(g.valor)}</div><div class="dev-sub">${GC[g.cat]||g.cat} · ${esc(g.quem)}</div></div></div>`; });
+  saude.forEach(s=>{ evs+=`<div class="dev"><div class="dev-pip" style="background:var(--red)"></div><div><div class="dev-txt">${SC[s.tipo]}${s.espec?' — '+esc(s.espec):''}${s.hora?' · ⏰'+s.hora:''}</div>${s.medico?`<div class="dev-sub">👨‍⚕️ ${esc(s.medico)}</div>`:''}</div></div>`; });
+  ativ.forEach(a=>{ evs+=`<div class="dev"><div class="dev-pip" style="background:var(--purple)"></div><div><div class="dev-txt">${a.mat?esc(a.mat)+' — ':''}${EC[a.tipo]||a.tipo}${a.hora?' · ⏰'+a.hora:''}</div>${a.desc?`<div class="dev-sub">${esc(a.desc)}</div>`:''}</div></div>`; });
+  obs.forEach(o=>{ const bits=[o.sono,o.humor,o.comeu].filter(Boolean).join(' · '); evs+=`<div class="dev"><div class="dev-pip" style="background:var(--teal)"></div><div><div class="dev-txt">Observação${bits?' — '+esc(bits):''}</div>${o.nota?`<div class="dev-sub">${esc(o.nota.slice(0,90))}${o.nota.length>90?'…':''}</div>`:''}</div></div>`; });
+  if(!evs) evs=`<div style="font-size:13px;color:var(--hint);padding:6px 0;">Nenhum evento neste dia.</div>`;
+  $('day-panel').innerHTML=`<div class="dpanel"><div class="dpanel-title">📅 ${title}</div>${evs}</div>`;
+}
+
+/* ═══════════════════════════════════════
+   INIT
+═══════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', async ()=>{
+  await openDB();
+  setDates();
+  renderCal();
+  renderGStats();
+});
+</script>
+</body>
+</html>
