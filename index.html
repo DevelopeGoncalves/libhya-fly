@@ -7,6 +7,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="theme-color" content="#1E3A5F"/>
+
+<!-- PWA -->
+<link rel="manifest" href="./manifest.json"/>
+<link rel="apple-touch-icon" href="./icon-192.png"/>
+
 <title>Fly</title>
 <style>
 /* ─── TOKENS ─────────────────────────────────────────── */
@@ -32,11 +37,29 @@ body{
   -webkit-font-smoothing:antialiased;
 }
 
+/* ─── SPLASH / LOADING FIREBASE ──────────────────────── */
+#fb-loading{
+  position:fixed;inset:0;z-index:99999;
+  background:var(--navy);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
+}
+#fb-loading .splash-icon{
+  width:72px;height:72px;background:var(--teal);border-radius:20px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:36px;
+  box-shadow:0 8px 24px rgba(14,159,140,0.5);
+}
+#fb-loading .splash-txt{color:rgba(255,255,255,.7);font-size:14px;}
+#fb-loading .splash-spinner{
+  width:28px;height:28px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;
+  border-radius:50%;animation:spin 0.8s linear infinite;
+}
+
 /* ─── TELA DE LOGIN ──────────────────────────────────── */
 #login-screen {
   position: fixed; inset: 0; z-index: 9999;
   background-color: var(--bg);
-  display: flex; align-items: center; justify-content: center;
+  display: none; align-items: center; justify-content: center;
   padding: 20px;
 }
 .login-card {
@@ -47,11 +70,11 @@ body{
 }
 .login-brand { text-align: center; margin-bottom: 32px; }
 .login-icon {
-  width: 48px; height: 48px; background: var(--navy); border-radius: 14px;
+  width: 56px; height: 56px; background: var(--navy); border-radius: 16px;
   display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; color: #fff;
   box-shadow: 0 4px 14px rgba(30, 58, 95, 0.4);
+  font-size: 28px;
 }
-.login-icon svg { width: 24px; height: 24px; fill: currentColor; }
 .login-brand h1 { font-size: 24px; font-weight: 700; color: var(--txt); }
 .login-brand p { font-size: 14px; color: var(--muted); margin-top: 4px; }
 
@@ -63,6 +86,7 @@ body{
   transition: all 0.2s ease;
 }
 .login-field input:focus { border-color: var(--teal); background: var(--card); }
+.login-err{font-size:13px;color:var(--red);text-align:center;margin-top:8px;display:none;}
 
 .login-btn {
   width: 100%; padding: 14px; background: var(--teal); color: #fff;
@@ -80,7 +104,7 @@ body{
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ─── APP SHELL ─────────────────────────────────────── */
-#app{display:none; /* Inicia oculto até fazer login */ flex-direction:column;height:100dvh;height:100vh;}
+#app{display:none;flex-direction:column;height:100dvh;height:100vh;}
 
 /* ─── HEADER ─────────────────────────────────────────── */
 .hdr{
@@ -94,7 +118,22 @@ body{
 }
 .hdr-icon{width:30px;height:30px;background:var(--teal);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
 .hdr-title{color:#fff;font-size:17px;font-weight:700;letter-spacing:-.3px;}
-.hdr-sub{color:rgba(255,255,255,.45);font-size:11px;margin-left:auto;align-self:center;}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.hdr-sync{
+  width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.12);
+  border:none;color:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+  transition:opacity .15s;
+}
+.hdr-sync.syncing{animation:spin 0.8s linear infinite;}
+.hdr-user{color:rgba(255,255,255,.55);font-size:11px;}
+.sync-dot{
+  width:8px;height:8px;border-radius:50%;background:#10B981;
+  box-shadow:0 0 0 2px rgba(255,255,255,.2);
+  flex-shrink:0;
+}
+.sync-dot.offline{background:#F59E0B;}
+.sync-dot.error{background:var(--red);}
 
 /* ─── SCROLL AREA ────────────────────────────────────── */
 .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
@@ -271,14 +310,18 @@ body{
 </head>
 <body>
 
+<!-- ─── SPLASH FIREBASE LOADING ─── -->
+<div id="fb-loading">
+  <div class="splash-icon">✈️</div>
+  <div class="splash-spinner"></div>
+  <div class="splash-txt">Conectando ao servidor…</div>
+</div>
+
+<!-- ─── LOGIN ──────────────────── -->
 <div id="login-screen">
   <div class="login-card">
     <div class="login-brand">
-      <div class="login-icon">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-        </svg>
-      </div>
+      <div class="login-icon">✈️</div>
       <h1>Fly</h1>
       <p>Acesse sua conta para continuar</p>
     </div>
@@ -295,16 +338,21 @@ body{
         <span class="login-text">Entrar no sistema</span>
         <div class="login-spinner"></div>
       </button>
+      <div class="login-err" id="login-err">Usuário ou senha incorretos.</div>
     </form>
   </div>
 </div>
 
+<!-- ─── APP ────────────────────── -->
 <div id="app">
 
 <header class="hdr">
   <div class="hdr-icon">✈️</div>
   <span class="hdr-title">Fly</span>
-  <span class="hdr-sub">dados salvos no aparelho</span>
+  <div class="hdr-right">
+    <span class="hdr-user" id="hdr-user"></span>
+    <div class="sync-dot" id="sync-dot"></div>
+  </div>
 </header>
 
 <div class="scroll" id="scroll">
@@ -549,7 +597,9 @@ body{
   </button>
 </nav>
 
-</div><div class="toast" id="toast"></div>
+</div><!-- /app -->
+
+<div class="toast" id="toast"></div>
 
 <div class="overlay" id="modal" style="display:none" onclick="if(event.target===this)closeModal()">
   <div class="sheet">
@@ -562,140 +612,223 @@ body{
   </div>
 </div>
 
+<!-- ════════════════════════════════════════════════════
+     FIREBASE SDK (modular compat)
+════════════════════════════════════════════════════ -->
+<script type="module">
+import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getDatabase, ref, get, set, remove, onValue, off }
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+
+/* ─── CONFIG ──────────────────────────────────────────
+   ⚠️  Namespace isolado: todos os dados do Fly ficam
+       em /fly_app/  — não conflita com outros projetos
+       no mesmo Firebase.
+────────────────────────────────────────────────────── */
+const firebaseConfig = {
+  apiKey: "AIzaSyAZXNqxuUyKACvDRuRYXUdzrUpVUl8K0JU",
+  authDomain: "acaivictorino-amostra.firebaseapp.com",
+  databaseURL: "https://acaivictorino-amostra-default-rtdb.firebaseio.com",
+  projectId: "acaivictorino-amostra",
+  storageBucket: "acaivictorino-amostra.firebasestorage.app",
+  messagingSenderId: "1085066202451",
+  appId: "1:1085066202451:web:5768ce3d9c2dc7a304a5a6"
+};
+
+// Evita duplicar instância se já existir outra app no mesmo projeto
+const app = getApps().length === 0
+  ? initializeApp(firebaseConfig)
+  : getApps()[0];
+
+const db = getDatabase(app);
+
+/* ─── PREFIXO ISOLADO ─────────────────────────────── */
+// Todos os paths do Fly ficam dentro de /fly_app/
+// O sistema do açaí (ou qualquer outro) fica em outros paths
+const FLY_ROOT = 'fly_app';
+
+/* ─── EXPOSE para o código global abaixo ─────────────*/
+window._fbRef   = (path) => ref(db, `${FLY_ROOT}/${path}`);
+window._fbGet   = async (path) => {
+  try {
+    const snap = await get(window._fbRef(path));
+    return snap.exists() ? snap.val() : null;
+  } catch { return null; }
+};
+window._fbSet   = async (path, val) => {
+  try { await set(window._fbRef(path), val); return true; }
+  catch { return false; }
+};
+window._fbDel   = async (path) => {
+  try { await remove(window._fbRef(path)); return true; }
+  catch { return false; }
+};
+window._fbListen = (path, cb) => {
+  const r = window._fbRef(path);
+  onValue(r, snap => cb(snap.exists() ? snap.val() : null));
+  return () => off(r);
+};
+
+// Sinaliza que Firebase está pronto
+window._fbReady = true;
+window.dispatchEvent(new Event('fb-ready'));
+
+/* ─── DETECTA CONECTIVIDADE ───────────────────────── */
+const connRef = ref(db, '.info/connected');
+onValue(connRef, snap => {
+  const online = !!snap.val();
+  const dot = document.getElementById('sync-dot');
+  if (dot) {
+    dot.className = 'sync-dot' + (online ? '' : ' offline');
+    dot.title = online ? 'Conectado ao servidor' : 'Sem conexão — salvando local';
+  }
+});
+</script>
+
+<!-- ════════════════════════════════════════════════════
+     LÓGICA DO APP
+════════════════════════════════════════════════════ -->
 <script>
 /* ═══════════════════════════════════════
-   LÓGICA DE LOGIN "FLY"
+   AGUARDA O FIREBASE E INICIA APP
+═══════════════════════════════════════ */
+function whenFbReady(cb) {
+  if (window._fbReady) { cb(); return; }
+  window.addEventListener('fb-ready', cb, { once: true });
+  // Timeout de segurança: se Firebase demorar > 8s, vai com fallback RAM
+  setTimeout(() => { if (!window._fbReady) { window._fbReady = true; cb(); } }, 8000);
+}
+
+/* ═══════════════════════════════════════
+   STORAGE — Firebase Realtime Database
+   com fallback RAM quando offline
+═══════════════════════════════════════ */
+const _ram = {};
+
+async function loadKey(k) {
+  try {
+    if (window._fbReady && window._fbGet) {
+      const v = await window._fbGet(k);
+      if (Array.isArray(v)) { _ram[k] = v; return v; }
+      // Firebase pode serializar arrays como objetos com índices numéricos
+      if (v && typeof v === 'object') {
+        const arr = Object.values(v);
+        _ram[k] = arr; return arr;
+      }
+    }
+  } catch {}
+  return Array.isArray(_ram[k]) ? _ram[k] : [];
+}
+
+async function saveKey(k, v) {
+  _ram[k] = v; // cache local imediato
+  if (window._fbReady && window._fbSet) {
+    // Converte array para objeto indexado (Firebase não garante ordem em arrays)
+    const obj = {};
+    v.forEach((item, i) => { obj[i] = item; });
+    await window._fbSet(k, v.length > 0 ? obj : null);
+  }
+}
+
+const K = {
+  gastos: 'gastos',
+  saude:  'saude',
+  ativ:   'ativ',
+  grade:  'grade',
+  obs:    'obs'
+};
+
+/* ═══════════════════════════════════════
+   LOGIN
 ═══════════════════════════════════════ */
 document.getElementById('flyLogin').addEventListener('submit', function(e) {
   e.preventDefault();
-  
-  const u = document.getElementById('usr').value;
-  const p = document.getElementById('pwd').value;
+  const u   = document.getElementById('usr').value;
+  const p   = document.getElementById('pwd').value;
   const btn = document.getElementById('submitBtn');
+  const err = document.getElementById('login-err');
 
   if (u === 'Fly' && p === '1234') {
+    err.style.display = 'none';
     btn.classList.add('loading');
     btn.disabled = true;
-    
+    document.getElementById('hdr-user').textContent = u;
     setTimeout(() => {
-      // Esconde a tela de login
       document.getElementById('login-screen').style.display = 'none';
-      // Mostra o app completo
-      document.getElementById('app').style.display = 'flex';
-      
-      // Força a re-renderização do calendário para ajustar dimensões se necessário
+      const appEl = document.getElementById('app');
+      appEl.style.display = 'flex';
+      setDates();
+      renderGStats();
       renderCal();
-    }, 1200);
+    }, 800);
   } else {
-    alert('Usuário ou senha incorretos! Use Fly / 1234.');
+    err.style.display = 'block';
   }
 });
 
 /* ═══════════════════════════════════════
-   STORAGE — IndexedDB com fallback RAM
-═══════════════════════════════════════ */
-const STORE_NAME = 'coparent';
-const DB_NAME    = 'CoParentDB';
-const DB_VER     = 1;
-let _db = null;
-const _ram = {}; // fallback in-memory
-
-function openDB(){
-  return new Promise((res,rej)=>{
-    if(_db){ res(_db); return; }
-    if(!window.indexedDB){ res(null); return; }
-    const req = indexedDB.open(DB_NAME, DB_VER);
-    req.onupgradeneeded = e => {
-      const db = e.target.result;
-      if(!db.objectStoreNames.contains(STORE_NAME)){
-        db.createObjectStore(STORE_NAME);
-      }
-    };
-    req.onsuccess = e => { _db = e.target.result; res(_db); };
-    req.onerror   = ()=> { res(null); };
-  });
-}
-
-async function dbGet(key){
-  try{
-    const db = await openDB();
-    if(!db) return _ram[key] ?? null;
-    return new Promise(res=>{
-      const tx = db.transaction(STORE_NAME,'readonly');
-      const req = tx.objectStore(STORE_NAME).get(key);
-      req.onsuccess = ()=> res(req.result ?? null);
-      req.onerror   = ()=> res(_ram[key] ?? null);
-    });
-  } catch{ return _ram[key] ?? null; }
-}
-
-async function dbSet(key,val){
-  try{
-    _ram[key] = val;
-    const db = await openDB();
-    if(!db) return;
-    return new Promise(res=>{
-      const tx = db.transaction(STORE_NAME,'readwrite');
-      tx.objectStore(STORE_NAME).put(val,key);
-      tx.oncomplete = res;
-      tx.onerror    = res;
-    });
-  } catch{}
-}
-
-async function loadKey(k){ const v = await dbGet(k); return Array.isArray(v) ? v : []; }
-async function saveKey(k,v){ await dbSet(k,v); }
-
-const K = { gastos:'cp_gastos', saude:'cp_saude', ativ:'cp_ativ', grade:'cp_grade', obs:'cp_obs' };
-
-/* ═══════════════════════════════════════
    HELPERS
 ═══════════════════════════════════════ */
-const uid    = ()=> Date.now().toString(36)+Math.random().toString(36).slice(2,5);
-const todayS = ()=> new Date().toISOString().slice(0,10);
-const fmtD   = s=>{ if(!s) return '–'; const[y,m,d]=s.split('-'); return `${d}/${m}/${y}`; };
-const fmtR   = v=> 'R$ '+parseFloat(v||0).toFixed(2).replace('.',',');
-const esc    = s=> String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const $      = id=> document.getElementById(id);
-const val    = id=> $(id)?.value?.trim()||'';
+const uid    = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+const todayS = () => new Date().toISOString().slice(0, 10);
+const fmtD   = s => { if (!s) return '–'; const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
+const fmtR   = v => 'R$ ' + parseFloat(v||0).toFixed(2).replace('.', ',');
+const esc    = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const $      = id => document.getElementById(id);
+const val    = id => $(id)?.value?.trim() || '';
 
 let toastTm;
-function toast(m){ const e=$('toast'); e.textContent=m; e.classList.add('show'); clearTimeout(toastTm); toastTm=setTimeout(()=>e.classList.remove('show'),2500); }
+function toast(m) {
+  const e = $('toast');
+  e.textContent = m;
+  e.classList.add('show');
+  clearTimeout(toastTm);
+  toastTm = setTimeout(() => e.classList.remove('show'), 2500);
+}
 
-let _pendDel=null;
-function askDel(fn){ _pendDel=fn; $('modal').style.display='flex'; }
-function closeModal(){ $('modal').style.display='none'; _pendDel=null; }
-function confirmDel(){ if(_pendDel){_pendDel();} closeModal(); }
+let _pendDel = null;
+function askDel(fn)   { _pendDel = fn; $('modal').style.display = 'flex'; }
+function closeModal() { $('modal').style.display = 'none'; _pendDel = null; }
+function confirmDel() { if (_pendDel) { _pendDel(); } closeModal(); }
 
 /* ═══════════════════════════════════════
    NAV
 ═══════════════════════════════════════ */
 const PAGES = ['cal','gastos','saude','escolar','obs'];
-function goPage(id){
-  PAGES.forEach(p=>{
-    $('page-'+p).classList.toggle('active',p===id);
-    $('btn-'+p).classList.toggle('active',p===id);
+function goPage(id) {
+  PAGES.forEach(p => {
+    $('page-' + p).classList.toggle('active', p === id);
+    $('btn-' + p).classList.toggle('active', p === id);
   });
-  $('scroll').scrollTop=0;
-  if(id==='cal')    renderCal();
-  if(id==='gastos') { renderGStats(); renderGList(); }
-  if(id==='saude')  renderSList();
-  if(id==='escolar') renderAList();
-  if(id==='obs')    renderOList();
+  $('scroll').scrollTop = 0;
+  if (id === 'cal')     renderCal();
+  if (id === 'gastos')  { renderGStats(); renderGList(); }
+  if (id === 'saude')   renderSList();
+  if (id === 'escolar') renderAList();
+  if (id === 'obs')     renderOList();
 }
 
 /* ═══════════════════════════════════════
    FORM UTILS
 ═══════════════════════════════════════ */
 const FORM_IDS = {
-  gastos:['g-cat','g-data','g-desc','g-valor','g-quem','g-nf','g-obs'],
-  saude: ['s-tipo','s-data','s-hora','s-espec','s-medico','s-res','s-obs'],
-  esc:   ['e-tipo','e-data','e-hora','e-mat','e-desc'],
-  grade: ['h-dia','h-ini','h-fim','h-mat','h-prof','h-sala'],
-  obs:   ['o-data','o-sono','o-comeu','o-humor','o-febre','o-remed','o-nota']
+  gastos: ['g-cat','g-data','g-desc','g-valor','g-quem','g-nf','g-obs'],
+  saude:  ['s-tipo','s-data','s-hora','s-espec','s-medico','s-res','s-obs'],
+  esc:    ['e-tipo','e-data','e-hora','e-mat','e-desc'],
+  grade:  ['h-dia','h-ini','h-fim','h-mat','h-prof','h-sala'],
+  obs:    ['o-data','o-sono','o-comeu','o-humor','o-febre','o-remed','o-nota']
 };
-function clrForm(w){ (FORM_IDS[w]||[]).forEach(id=>{ const e=$(id); if(!e) return; if(e.tagName==='SELECT') e.selectedIndex=0; else e.value=''; }); }
-function setDates(){ ['g-data','s-data','e-data','o-data'].forEach(id=>{ const e=$(id); if(e&&!e.value) e.value=todayS(); }); }
+function clrForm(w) {
+  (FORM_IDS[w] || []).forEach(id => {
+    const e = $(id); if (!e) return;
+    if (e.tagName === 'SELECT') e.selectedIndex = 0; else e.value = '';
+  });
+}
+function setDates() {
+  ['g-data','s-data','e-data','o-data'].forEach(id => {
+    const e = $(id); if (e && !e.value) e.value = todayS();
+  });
+}
 
 /* ═══════════════════════════════════════
    MAPS
@@ -713,186 +846,221 @@ const DNS   = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 /* ═══════════════════════════════════════
    GASTOS
 ═══════════════════════════════════════ */
-let gFilt='todos';
+let gFilt = 'todos';
 
-async function saveGasto(){
-  const data=val('g-data'),desc=val('g-desc');
-  if(!data||!desc){ toast('⚠️ Preencha data e descrição'); return; }
+async function saveGasto() {
+  const data = val('g-data'), desc = val('g-desc');
+  if (!data || !desc) { toast('⚠️ Preencha data e descrição'); return; }
   const lista = await loadKey(K.gastos);
-  lista.unshift({id:uid(),cat:val('g-cat'),data,desc,valor:parseFloat(val('g-valor'))||0,quem:val('g-quem'),nf:val('g-nf'),obs:val('g-obs')});
-  await saveKey(K.gastos,lista);
+  lista.unshift({ id:uid(), cat:val('g-cat'), data, desc, valor:parseFloat(val('g-valor'))||0, quem:val('g-quem'), nf:val('g-nf'), obs:val('g-obs') });
+  await saveKey(K.gastos, lista);
   clrForm('gastos'); setDates();
   toast('✅ Gasto salvo!');
-  renderGStats(); renderGList(); calDotsDirty=true; if($('page-cal').classList.contains('active')) renderCal();
+  renderGStats(); renderGList(); calDotsDirty = true;
+  if ($('page-cal').classList.contains('active')) renderCal();
 }
 
-async function renderGStats(){
+async function renderGStats() {
   const lista = await loadKey(K.gastos);
-  const tot = lista.reduce((s,g)=>s+g.valor,0);
-  const now=new Date(),mes=now.getMonth(),ano=now.getFullYear();
-  const mes_tot = lista.filter(g=>{ if(!g.data) return false; const d=new Date(g.data+'T12:00'); return d.getMonth()===mes&&d.getFullYear()===ano; }).reduce((s,g)=>s+g.valor,0);
-  const pA = lista.filter(g=>g.quem==='Responsável A').reduce((s,g)=>s+g.valor,0);
-  const pB = lista.filter(g=>g.quem==='Responsável B').reduce((s,g)=>s+g.valor,0);
-  $('gstats').innerHTML=`
+  const tot = lista.reduce((s,g) => s + g.valor, 0);
+  const now = new Date(), mes = now.getMonth(), ano = now.getFullYear();
+  const mes_tot = lista.filter(g => {
+    if (!g.data) return false;
+    const d = new Date(g.data + 'T12:00');
+    return d.getMonth() === mes && d.getFullYear() === ano;
+  }).reduce((s,g) => s + g.valor, 0);
+  const pA = lista.filter(g => g.quem === 'Responsável A').reduce((s,g) => s + g.valor, 0);
+  const pB = lista.filter(g => g.quem === 'Responsável B').reduce((s,g) => s + g.valor, 0);
+  $('gstats').innerHTML = `
     <div class="stat"><div class="stat-lbl">Total geral</div><div class="stat-val sv-blue">${fmtR(tot)}</div></div>
     <div class="stat"><div class="stat-lbl">Este mês</div><div class="stat-val sv-orange">${fmtR(mes_tot)}</div></div>
     <div class="stat"><div class="stat-lbl">Resp. A</div><div class="stat-val">${fmtR(pA)}</div></div>
     <div class="stat"><div class="stat-lbl">Resp. B</div><div class="stat-val">${fmtR(pB)}</div></div>`;
 }
 
-function filtG(f,btn){ gFilt=f; $('gpills').querySelectorAll('.pill').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); renderGList(); }
+function filtG(f, btn) {
+  gFilt = f;
+  $('gpills').querySelectorAll('.pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderGList();
+}
 
-async function renderGList(){
+async function renderGList() {
   const all = await loadKey(K.gastos);
-  const lista = gFilt==='todos' ? all : all.filter(g=>g.cat===gFilt);
-  const el=$('glist');
-  if(!lista.length){ el.innerHTML=`<div class="empty"><div class="empty-e">💰</div><div class="empty-t">Nenhum gasto registrado.</div></div>`; return; }
-  el.innerHTML=lista.map(g=>`
+  const lista = gFilt === 'todos' ? all : all.filter(g => g.cat === gFilt);
+  const el = $('glist');
+  if (!lista.length) { el.innerHTML = `<div class="empty"><div class="empty-e">💰</div><div class="empty-t">Nenhum gasto registrado.</div></div>`; return; }
+  el.innerHTML = lista.map(g => `
     <div class="rec">
       <div class="rec-body">
         <div class="rec-title">${esc(g.desc)}</div>
-        <div class="rec-meta"><span>📅 ${fmtD(g.data)}</span><span>👤 ${esc(g.quem)}</span>${g.nf?`<span>🧾 ${esc(g.nf)}</span>`:''}</div>
-        ${g.obs?`<div class="rec-obs">💬 ${esc(g.obs)}</div>`:''}
+        <div class="rec-meta">
+          <span>📅 ${fmtD(g.data)}</span>
+          <span class="badge ${GB[g.cat]||'b-gray'}">${GC[g.cat]||g.cat}</span>
+          ${g.quem ? `<span>👤 ${esc(g.quem)}</span>` : ''}
+          ${g.nf ? `<span>🧾 ${esc(g.nf)}</span>` : ''}
+        </div>
+        ${g.obs ? `<div class="rec-obs">${esc(g.obs)}</div>` : ''}
       </div>
       <div class="rec-side">
         <div class="rec-val">${fmtR(g.valor)}</div>
-        <span class="badge ${GB[g.cat]||'b-gray'}">${GC[g.cat]||g.cat}</span>
         <button class="del-btn" onclick="askDel(()=>delGasto('${g.id}'))">✕</button>
       </div>
     </div>`).join('');
 }
 
-async function delGasto(id){
+async function delGasto(id) {
   const lista = await loadKey(K.gastos);
-  await saveKey(K.gastos, lista.filter(g=>g.id!==id));
-  toast('🗑️ Removido'); renderGStats(); renderGList(); calDotsDirty=true; if($('page-cal').classList.contains('active')) renderCal();
+  await saveKey(K.gastos, lista.filter(g => g.id !== id));
+  toast('🗑️ Removido'); renderGStats(); renderGList(); calDotsDirty = true;
+  if ($('page-cal').classList.contains('active')) renderCal();
 }
 
 /* ═══════════════════════════════════════
    SAÚDE
 ═══════════════════════════════════════ */
-let sFilt='todos';
+let sFilt = 'todos';
 
-async function saveSaude(){
-  const data=val('s-data');
-  if(!data){ toast('⚠️ Preencha a data'); return; }
+async function saveSaude() {
+  const data = val('s-data');
+  if (!data) { toast('⚠️ Preencha a data'); return; }
   const lista = await loadKey(K.saude);
-  lista.unshift({id:uid(),tipo:val('s-tipo'),data,hora:val('s-hora'),espec:val('s-espec'),medico:val('s-medico'),res:val('s-res'),obs:val('s-obs')});
-  await saveKey(K.saude,lista);
+  lista.unshift({ id:uid(), tipo:val('s-tipo'), data, hora:val('s-hora'), espec:val('s-espec'), medico:val('s-medico'), res:val('s-res'), obs:val('s-obs') });
+  await saveKey(K.saude, lista);
   clrForm('saude'); setDates();
   toast('✅ Registro salvo!');
-  renderSList(); calDotsDirty=true; if($('page-cal').classList.contains('active')) renderCal();
+  renderSList(); calDotsDirty = true;
+  if ($('page-cal').classList.contains('active')) renderCal();
 }
 
-function filtS(f,btn){ sFilt=f; $('spills').querySelectorAll('.pill').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); renderSList(); }
+function filtS(f, btn) {
+  sFilt = f;
+  $('spills').querySelectorAll('.pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderSList();
+}
 
-async function renderSList(){
+async function renderSList() {
   const all = await loadKey(K.saude);
-  const lista = sFilt==='todos' ? all : all.filter(s=>s.tipo===sFilt);
-  const el=$('slist');
-  if(!lista.length){ el.innerHTML=`<div class="empty"><div class="empty-e">🏥</div><div class="empty-t">Nenhum evento registrado.</div></div>`; return; }
-  el.innerHTML=lista.map(s=>`
+  const lista = sFilt === 'todos' ? all : all.filter(s => s.tipo === sFilt);
+  const el = $('slist');
+  if (!lista.length) { el.innerHTML = `<div class="empty"><div class="empty-e">🏥</div><div class="empty-t">Nenhum registro de saúde.</div></div>`; return; }
+  el.innerHTML = lista.map(s => `
     <div class="rec">
       <div class="rec-body">
-        <div class="rec-title">${esc(s.espec)||SC[s.tipo]||'–'}</div>
-        <div class="rec-meta"><span>📅 ${fmtD(s.data)}</span>${s.hora?`<span>⏰ ${s.hora}</span>`:''}${s.medico?`<span>👨‍⚕️ ${esc(s.medico)}</span>`:''}</div>
-        ${s.res?`<div class="rec-obs">📄 ${esc(s.res)}</div>`:''}
-        ${s.obs?`<div class="rec-obs">💬 ${esc(s.obs)}</div>`:''}
+        <div class="rec-title">${SC[s.tipo]||s.tipo}${s.espec?' – '+esc(s.espec):''}</div>
+        <div class="rec-meta">
+          <span>📅 ${fmtD(s.data)}</span>
+          ${s.hora ? `<span>⏰ ${s.hora}</span>` : ''}
+          <span class="badge ${SB[s.tipo]||'b-gray'}">${SC[s.tipo]||s.tipo}</span>
+          ${s.medico ? `<span>👨‍⚕️ ${esc(s.medico)}</span>` : ''}
+        </div>
+        ${s.res ? `<div class="rec-obs">Resultado: ${esc(s.res)}</div>` : ''}
+        ${s.obs ? `<div class="rec-obs">${esc(s.obs)}</div>` : ''}
       </div>
       <div class="rec-side">
-        <span class="badge ${SB[s.tipo]||'b-teal'}">${SC[s.tipo]||s.tipo}</span>
         <button class="del-btn" onclick="askDel(()=>delSaude('${s.id}'))">✕</button>
       </div>
     </div>`).join('');
 }
 
-async function delSaude(id){
+async function delSaude(id) {
   const lista = await loadKey(K.saude);
-  await saveKey(K.saude, lista.filter(s=>s.id!==id));
-  toast('🗑️ Removido'); renderSList(); calDotsDirty=true; if($('page-cal').classList.contains('active')) renderCal();
+  await saveKey(K.saude, lista.filter(s => s.id !== id));
+  toast('🗑️ Removido'); renderSList(); calDotsDirty = true;
+  if ($('page-cal').classList.contains('active')) renderCal();
 }
 
 /* ═══════════════════════════════════════
    ESCOLAR – ATIVIDADES
 ═══════════════════════════════════════ */
-let aFilt='todos';
+let aFilt = 'todos';
 
-function escTab(tab,btn){
-  $('etabs').querySelectorAll('.pill').forEach(b=>b.classList.remove('active')); btn.classList.add('active');
-  $('esc-ativ').style.display  = tab==='ativ'  ? 'block':'none';
-  $('esc-grade').style.display = tab==='grade' ? 'block':'none';
-  if(tab==='grade') renderGradeList();
+function escTab(tab, btn) {
+  $('etabs').querySelectorAll('.pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  $('esc-ativ').style.display  = tab === 'ativ'  ? '' : 'none';
+  $('esc-grade').style.display = tab === 'grade' ? '' : 'none';
+  if (tab === 'grade') renderGradeList();
 }
 
-async function saveAtiv(){
-  const data=val('e-data');
-  if(!data){ toast('⚠️ Preencha a data'); return; }
+async function saveAtiv() {
+  const data = val('e-data'), mat = val('e-mat');
+  if (!data) { toast('⚠️ Preencha a data'); return; }
   const lista = await loadKey(K.ativ);
-  lista.unshift({id:uid(),tipo:val('e-tipo'),data,hora:val('e-hora'),mat:val('e-mat'),desc:val('e-desc')});
-  await saveKey(K.ativ,lista);
+  lista.unshift({ id:uid(), tipo:val('e-tipo'), data, hora:val('e-hora'), mat, desc:val('e-desc') });
+  await saveKey(K.ativ, lista);
   clrForm('esc'); setDates();
   toast('✅ Atividade salva!');
-  renderAList(); calDotsDirty=true; if($('page-cal').classList.contains('active')) renderCal();
+  renderAList(); calDotsDirty = true;
+  if ($('page-cal').classList.contains('active')) renderCal();
 }
 
-function filtA(f,btn){ aFilt=f; $('apills').querySelectorAll('.pill').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); renderAList(); }
+function filtA(f, btn) {
+  aFilt = f;
+  $('apills').querySelectorAll('.pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAList();
+}
 
-async function renderAList(){
+async function renderAList() {
   const all = await loadKey(K.ativ);
-  const lista = (aFilt==='todos'?all:all.filter(a=>a.tipo===aFilt)).sort((a,b)=>(a.data||'')>(b.data||'')?1:-1);
-  const hoje=todayS();
-  const el=$('alist');
-  if(!lista.length){ el.innerHTML=`<div class="empty"><div class="empty-e">🎒</div><div class="empty-t">Nenhuma atividade registrada.</div></div>`; return; }
-  el.innerHTML=lista.map(a=>{
-    const past=a.data&&a.data<hoje;
-    return`<div class="rec" style="${past?'opacity:.55':''}">
+  const lista = aFilt === 'todos' ? all : all.filter(a => a.tipo === aFilt);
+  const el = $('alist');
+  if (!lista.length) { el.innerHTML = `<div class="empty"><div class="empty-e">🎒</div><div class="empty-t">Nenhuma atividade registrada.</div></div>`; return; }
+  el.innerHTML = lista.map(a => `
+    <div class="rec">
       <div class="rec-body">
-        <div class="rec-title">${a.mat?esc(a.mat)+' — ':''}${EC[a.tipo]||a.tipo}</div>
-        <div class="rec-meta"><span>📅 ${fmtD(a.data)}</span>${a.hora?`<span>⏰ ${a.hora}</span>`:''}${past?`<span style="color:var(--hint)">✓ Concluído</span>`:''}</div>
-        ${a.desc?`<div class="rec-obs">📋 ${esc(a.desc)}</div>`:''}
+        <div class="rec-title">${a.mat ? esc(a.mat) + ' — ' : ''}${EC[a.tipo]||a.tipo}</div>
+        <div class="rec-meta">
+          <span>📅 ${fmtD(a.data)}</span>
+          ${a.hora ? `<span>⏰ ${a.hora}</span>` : ''}
+          <span class="badge ${EB[a.tipo]||'b-gray'}">${EC[a.tipo]||a.tipo}</span>
+        </div>
+        ${a.desc ? `<div class="rec-obs">${esc(a.desc)}</div>` : ''}
       </div>
       <div class="rec-side">
-        <span class="badge ${EB[a.tipo]||'b-gray'}">${EC[a.tipo]||a.tipo}</span>
         <button class="del-btn" onclick="askDel(()=>delAtiv('${a.id}'))">✕</button>
       </div>
-    </div>`;}).join('');
+    </div>`).join('');
 }
 
-async function delAtiv(id){
+async function delAtiv(id) {
   const lista = await loadKey(K.ativ);
-  await saveKey(K.ativ, lista.filter(a=>a.id!==id));
-  toast('🗑️ Removido'); renderAList(); calDotsDirty=true; if($('page-cal').classList.contains('active')) renderCal();
+  await saveKey(K.ativ, lista.filter(a => a.id !== id));
+  toast('🗑️ Removido'); renderAList(); calDotsDirty = true;
+  if ($('page-cal').classList.contains('active')) renderCal();
 }
 
 /* ═══════════════════════════════════════
-   ESCOLAR – GRADE
+   GRADE HORÁRIA
 ═══════════════════════════════════════ */
-async function saveGrade(){
-  const mat=val('h-mat');
-  if(!mat){ toast('⚠️ Preencha a matéria'); return; }
+async function saveGrade() {
+  const mat = val('h-mat');
+  if (!mat) { toast('⚠️ Preencha a matéria'); return; }
   const lista = await loadKey(K.grade);
-  lista.push({id:uid(),dia:val('h-dia'),ini:val('h-ini'),fim:val('h-fim'),mat,prof:val('h-prof'),sala:val('h-sala')});
-  await saveKey(K.grade,lista);
+  lista.push({ id:uid(), dia:val('h-dia'), ini:val('h-ini'), fim:val('h-fim'), mat, prof:val('h-prof'), sala:val('h-sala') });
+  await saveKey(K.grade, lista);
   clrForm('grade');
   toast('✅ Aula adicionada!');
   renderGradeList();
 }
 
-async function renderGradeList(){
+async function renderGradeList() {
   const lista = await loadKey(K.grade);
-  const el=$('glist2');
-  if(!lista.length){ el.innerHTML=`<div class="empty"><div class="empty-e">📅</div><div class="empty-t">Grade horária vazia.</div></div>`; return; }
-  let html='';
-  DIAS.forEach(dia=>{
-    const aulas=lista.filter(h=>h.dia===dia).sort((a,b)=>(a.ini||'')>(b.ini||'')?1:-1);
-    if(!aulas.length) return;
-    html+=`<div class="card" style="padding:14px;margin-bottom:10px;">
+  const el = $('glist2');
+  if (!lista.length) { el.innerHTML = `<div class="empty"><div class="empty-e">📅</div><div class="empty-t">Grade horária vazia.</div></div>`; return; }
+  let html = '';
+  DIAS.forEach(dia => {
+    const aulas = lista.filter(h => h.dia === dia).sort((a,b) => (a.ini||'') > (b.ini||'') ? 1 : -1);
+    if (!aulas.length) return;
+    html += `<div class="card" style="padding:14px;margin-bottom:10px;">
       <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:10px;">${dia}</div>
       <div style="overflow-x:auto;">
       <table class="sched">
         <thead><tr><th>Horário</th><th>Matéria</th><th>Prof.</th><th>Sala</th><th></th></tr></thead>
-        <tbody>${aulas.map(h=>`<tr>
-          <td>${h.ini||'–'}${h.fim?' – '+h.fim:''}</td>
+        <tbody>${aulas.map(h => `<tr>
+          <td>${h.ini||'–'}${h.fim ? ' – ' + h.fim : ''}</td>
           <td><strong>${esc(h.mat)}</strong></td>
           <td>${esc(h.prof)||'–'}</td>
           <td>${esc(h.sala)||'–'}</td>
@@ -900,133 +1068,161 @@ async function renderGradeList(){
         </tr>`).join('')}</tbody>
       </table></div></div>`;
   });
-  el.innerHTML=html;
+  el.innerHTML = html;
 }
 
-async function delGrade(id){
+async function delGrade(id) {
   const lista = await loadKey(K.grade);
-  await saveKey(K.grade, lista.filter(h=>h.id!==id));
+  await saveKey(K.grade, lista.filter(h => h.id !== id));
   toast('🗑️ Removido'); renderGradeList();
 }
 
 /* ═══════════════════════════════════════
    OBSERVAÇÕES
 ═══════════════════════════════════════ */
-async function saveObs(){
-  const data=val('o-data');
-  if(!data){ toast('⚠️ Preencha a data'); return; }
+async function saveObs() {
+  const data = val('o-data');
+  if (!data) { toast('⚠️ Preencha a data'); return; }
   const lista = await loadKey(K.obs);
-  lista.unshift({id:uid(),data,sono:val('o-sono'),comeu:val('o-comeu'),humor:val('o-humor'),febre:val('o-febre'),remed:val('o-remed'),nota:val('o-nota')});
-  await saveKey(K.obs,lista);
+  lista.unshift({ id:uid(), data, sono:val('o-sono'), comeu:val('o-comeu'), humor:val('o-humor'), febre:val('o-febre'), remed:val('o-remed'), nota:val('o-nota') });
+  await saveKey(K.obs, lista);
   clrForm('obs'); setDates();
   toast('✅ Observação salva!');
-  renderOList(); calDotsDirty=true; if($('page-cal').classList.contains('active')) renderCal();
+  renderOList(); calDotsDirty = true;
+  if ($('page-cal').classList.contains('active')) renderCal();
 }
 
-async function renderOList(){
+async function renderOList() {
   const lista = await loadKey(K.obs);
-  const el=$('olist');
-  if(!lista.length){ el.innerHTML=`<div class="empty"><div class="empty-e">📝</div><div class="empty-t">Nenhuma observação registrada.</div></div>`; return; }
-  el.innerHTML=lista.map(o=>{
-    const chips=[
-      o.sono  ?`<div class="chip"><div class="chip-lbl">Sono</div><div class="chip-val">${esc(o.sono)}</div></div>`:'',
-      o.comeu ?`<div class="chip"><div class="chip-lbl">Alimentação</div><div class="chip-val">${esc(o.comeu)}</div></div>`:'',
-      o.humor ?`<div class="chip"><div class="chip-lbl">Humor</div><div class="chip-val">${esc(o.humor)}</div></div>`:'',
-      o.febre ?`<div class="chip"><div class="chip-lbl">Temperatura</div><div class="chip-val">🌡️ ${esc(o.febre)}</div></div>`:'',
-      o.remed ?`<div class="chip"><div class="chip-lbl">Remédios</div><div class="chip-val">💊 ${esc(o.remed)}</div></div>`:''
+  const el = $('olist');
+  if (!lista.length) { el.innerHTML = `<div class="empty"><div class="empty-e">📝</div><div class="empty-t">Nenhuma observação registrada.</div></div>`; return; }
+  el.innerHTML = lista.map(o => {
+    const chips = [
+      o.sono  ? `<div class="chip"><div class="chip-lbl">Sono</div><div class="chip-val">${esc(o.sono)}</div></div>` : '',
+      o.comeu ? `<div class="chip"><div class="chip-lbl">Alimentação</div><div class="chip-val">${esc(o.comeu)}</div></div>` : '',
+      o.humor ? `<div class="chip"><div class="chip-lbl">Humor</div><div class="chip-val">${esc(o.humor)}</div></div>` : '',
+      o.febre ? `<div class="chip"><div class="chip-lbl">Temperatura</div><div class="chip-val">🌡️ ${esc(o.febre)}</div></div>` : '',
+      o.remed ? `<div class="chip"><div class="chip-lbl">Remédios</div><div class="chip-val">💊 ${esc(o.remed)}</div></div>` : ''
     ].filter(Boolean).join('');
-    return`<div class="obs-card">
+    return `<div class="obs-card">
       <div class="obs-hdr">
         <div class="obs-date">📅 ${fmtD(o.data)}</div>
         <button class="del-btn" onclick="askDel(()=>delObs('${o.id}'))">✕</button>
       </div>
-      ${chips?`<div class="chips">${chips}</div>`:''}
-      ${o.nota?`<div class="obs-note">💬 ${esc(o.nota)}</div>`:''}
-    </div>`;}).join('');
+      ${chips ? `<div class="chips">${chips}</div>` : ''}
+      ${o.nota ? `<div class="obs-note">💬 ${esc(o.nota)}</div>` : ''}
+    </div>`;
+  }).join('');
 }
 
-async function delObs(id){
+async function delObs(id) {
   const lista = await loadKey(K.obs);
-  await saveKey(K.obs, lista.filter(o=>o.id!==id));
-  toast('🗑️ Removido'); renderOList(); calDotsDirty=true; if($('page-cal').classList.contains('active')) renderCal();
+  await saveKey(K.obs, lista.filter(o => o.id !== id));
+  toast('🗑️ Removido'); renderOList(); calDotsDirty = true;
+  if ($('page-cal').classList.contains('active')) renderCal();
 }
 
 /* ═══════════════════════════════════════
    CALENDÁRIO
 ═══════════════════════════════════════ */
-let calY=new Date().getFullYear(), calM=new Date().getMonth(), selD=null, calDotsDirty=true;
-let _dotsCache={};
+let calY = new Date().getFullYear(), calM = new Date().getMonth(), selD = null, calDotsDirty = true;
+let _dotsCache = {};
 
-function calMove(d){ calM+=d; if(calM>11){calM=0;calY++;} if(calM<0){calM=11;calY--;} renderCal(); }
+function calMove(d) {
+  calM += d;
+  if (calM > 11) { calM = 0; calY++; }
+  if (calM < 0)  { calM = 11; calY--; }
+  renderCal();
+}
 
-async function getDots(){
-  if(!calDotsDirty) return _dotsCache;
-  const m={};
-  const add=(date,type)=>{ if(!date) return; const k=date.slice(0,10); if(!m[k]) m[k]=new Set(); m[k].add(type); };
-  (await loadKey(K.gastos)).forEach(g=>add(g.data,'g'));
-  (await loadKey(K.saude)).forEach(s=>add(s.data,'s'));
-  (await loadKey(K.ativ)).forEach(a=>add(a.data,'e'));
-  (await loadKey(K.obs)).forEach(o=>add(o.data,'o'));
-  _dotsCache=m; calDotsDirty=false;
+async function getDots() {
+  if (!calDotsDirty) return _dotsCache;
+  const m = {};
+  const add = (date, type) => {
+    if (!date) return;
+    const k = date.slice(0, 10);
+    if (!m[k]) m[k] = new Set();
+    m[k].add(type);
+  };
+  (await loadKey(K.gastos)).forEach(g => add(g.data, 'g'));
+  (await loadKey(K.saude)).forEach(s  => add(s.data, 's'));
+  (await loadKey(K.ativ)).forEach(a   => add(a.data, 'e'));
+  (await loadKey(K.obs)).forEach(o    => add(o.data, 'o'));
+  _dotsCache = m; calDotsDirty = false;
   return m;
 }
 
-async function renderCal(){
-  $('cal-label').textContent=MESES[calM]+' '+calY;
-  $('cal-names').innerHTML=DNS.map(d=>`<div class="cal-dname">${d}</div>`).join('');
-  const dots=await getDots();
-  const first=new Date(calY,calM,1).getDay();
-  const dim=new Date(calY,calM+1,0).getDate();
-  const prevDim=new Date(calY,calM,0).getDate();
-  const todayISO=todayS();
-  let cells='';
-  for(let i=0;i<first;i++){ const d=prevDim-first+1+i; cells+=mkCell(d,iso(calY,calM-1,d),true,dots,todayISO); }
-  for(let d=1;d<=dim;d++) cells+=mkCell(d,iso(calY,calM,d),false,dots,todayISO);
-  const tot=first+dim; const rem=tot%7===0?0:7-tot%7;
-  for(let i=1;i<=rem;i++) cells+=mkCell(i,iso(calY,calM+1,i),true,dots,todayISO);
-  $('cal-cells').innerHTML=cells;
-  if(selD) renderDayPanel(selD); else $('day-panel').innerHTML='';
+async function renderCal() {
+  $('cal-label').textContent = MESES[calM] + ' ' + calY;
+  $('cal-names').innerHTML = DNS.map(d => `<div class="cal-dname">${d}</div>`).join('');
+  const dots = await getDots();
+  const first = new Date(calY, calM, 1).getDay();
+  const dim   = new Date(calY, calM + 1, 0).getDate();
+  const prevDim = new Date(calY, calM, 0).getDate();
+  const todayISO = todayS();
+  let cells = '';
+  for (let i = 0; i < first; i++) { const d = prevDim - first + 1 + i; cells += mkCell(d, iso(calY, calM - 1, d), true, dots, todayISO); }
+  for (let d = 1; d <= dim; d++)  cells += mkCell(d, iso(calY, calM, d), false, dots, todayISO);
+  const tot = first + dim; const rem = tot % 7 === 0 ? 0 : 7 - tot % 7;
+  for (let i = 1; i <= rem; i++) cells += mkCell(i, iso(calY, calM + 1, i), true, dots, todayISO);
+  $('cal-cells').innerHTML = cells;
+  if (selD) renderDayPanel(selD); else $('day-panel').innerHTML = '';
 }
 
-function iso(y,m,d){ let rY=y,rM=m; if(rM>11){rM=0;rY++;} if(rM<0){rM=11;rY--;} return `${rY}-${String(rM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
-
-function mkCell(d,isoStr,other,dots,todayISO){
-  let cls='cal-cell';
-  if(other) cls+=' other';
-  if(isoStr===todayISO) cls+=' today';
-  if(isoStr===selD) cls+=' sel';
-  const types=dots[isoStr]?[...dots[isoStr]]:[];
-  const dotH=types.map(t=>`<div class="dot d${t}"></div>`).join('');
-  return`<div class="${cls}" onclick="selectDay('${isoStr}')"><div class="cal-n">${d}</div>${dotH?`<div class="dots">${dotH}</div>`:''}</div>`;
+function iso(y, m, d) {
+  let rY = y, rM = m;
+  if (rM > 11) { rM = 0; rY++; }
+  if (rM < 0)  { rM = 11; rY--; }
+  return `${rY}-${String(rM + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 }
 
-function selectDay(isoStr){ selD = selD===isoStr ? null : isoStr; renderCal(); }
+function mkCell(d, isoStr, other, dots, todayISO) {
+  let cls = 'cal-cell';
+  if (other)           cls += ' other';
+  if (isoStr === todayISO) cls += ' today';
+  if (isoStr === selD)     cls += ' sel';
+  const types = dots[isoStr] ? [...dots[isoStr]] : [];
+  const dotH  = types.map(t => `<div class="dot d${t}"></div>`).join('');
+  return `<div class="${cls}" onclick="selectDay('${isoStr}')"><div class="cal-n">${d}</div>${dotH ? `<div class="dots">${dotH}</div>` : ''}</div>`;
+}
 
-async function renderDayPanel(isoStr){
-  const gastos=(await loadKey(K.gastos)).filter(g=>g.data===isoStr);
-  const saude=(await loadKey(K.saude)).filter(s=>s.data===isoStr);
-  const ativ=(await loadKey(K.ativ)).filter(a=>a.data===isoStr);
-  const obs=(await loadKey(K.obs)).filter(o=>o.data===isoStr);
-  const [y,m,d]=isoStr.split('-');
-  const title=`${parseInt(d)} de ${MESES[parseInt(m)-1]} de ${y}`;
-  let evs='';
-  gastos.forEach(g=>{ evs+=`<div class="dev"><div class="dev-pip" style="background:var(--amber)"></div><div><div class="dev-txt">${esc(g.desc)||'Gasto'} — ${fmtR(g.valor)}</div><div class="dev-sub">${GC[g.cat]||g.cat} · ${esc(g.quem)}</div></div></div>`; });
-  saude.forEach(s=>{ evs+=`<div class="dev"><div class="dev-pip" style="background:var(--red)"></div><div><div class="dev-txt">${SC[s.tipo]}${s.espec?' — '+esc(s.espec):''}${s.hora?' · ⏰'+s.hora:''}</div>${s.medico?`<div class="dev-sub">👨‍⚕️ ${esc(s.medico)}</div>`:''}</div></div>`; });
-  ativ.forEach(a=>{ evs+=`<div class="dev"><div class="dev-pip" style="background:var(--purple)"></div><div><div class="dev-txt">${a.mat?esc(a.mat)+' — ':''}${EC[a.tipo]||a.tipo}${a.hora?' · ⏰'+a.hora:''}</div>${a.desc?`<div class="dev-sub">${esc(a.desc)}</div>`:''}</div></div>`; });
-  obs.forEach(o=>{ const bits=[o.sono,o.humor,o.comeu].filter(Boolean).join(' · '); evs+=`<div class="dev"><div class="dev-pip" style="background:var(--teal)"></div><div><div class="dev-txt">Observação${bits?' — '+esc(bits):''}</div>${o.nota?`<div class="dev-sub">${esc(o.nota.slice(0,90))}${o.nota.length>90?'…':''}</div>`:''}</div></div>`; });
-  if(!evs) evs=`<div style="font-size:13px;color:var(--hint);padding:6px 0;">Nenhum evento neste dia.</div>`;
-  $('day-panel').innerHTML=`<div class="dpanel"><div class="dpanel-title">📅 ${title}</div>${evs}</div>`;
+function selectDay(isoStr) { selD = selD === isoStr ? null : isoStr; renderCal(); }
+
+async function renderDayPanel(isoStr) {
+  const gastos = (await loadKey(K.gastos)).filter(g => g.data === isoStr);
+  const saude  = (await loadKey(K.saude)).filter(s  => s.data === isoStr);
+  const ativ   = (await loadKey(K.ativ)).filter(a   => a.data === isoStr);
+  const obs    = (await loadKey(K.obs)).filter(o    => o.data === isoStr);
+  const [y,m,d] = isoStr.split('-');
+  const title = `${parseInt(d)} de ${MESES[parseInt(m) - 1]} de ${y}`;
+  let evs = '';
+  gastos.forEach(g => { evs += `<div class="dev"><div class="dev-pip" style="background:var(--amber)"></div><div><div class="dev-txt">${esc(g.desc)||'Gasto'} — ${fmtR(g.valor)}</div><div class="dev-sub">${GC[g.cat]||g.cat} · ${esc(g.quem)}</div></div></div>`; });
+  saude.forEach(s  => { evs += `<div class="dev"><div class="dev-pip" style="background:var(--red)"></div><div><div class="dev-txt">${SC[s.tipo]}${s.espec?' — '+esc(s.espec):''}${s.hora?' · ⏰'+s.hora:''}</div>${s.medico?`<div class="dev-sub">👨‍⚕️ ${esc(s.medico)}</div>`:''}</div></div>`; });
+  ativ.forEach(a   => { evs += `<div class="dev"><div class="dev-pip" style="background:var(--purple)"></div><div><div class="dev-txt">${a.mat?esc(a.mat)+' — ':''}${EC[a.tipo]||a.tipo}${a.hora?' · ⏰'+a.hora:''}</div>${a.desc?`<div class="dev-sub">${esc(a.desc)}</div>`:''}</div></div>`; });
+  obs.forEach(o    => { const bits = [o.sono,o.humor,o.comeu].filter(Boolean).join(' · '); evs += `<div class="dev"><div class="dev-pip" style="background:var(--teal)"></div><div><div class="dev-txt">Observação${bits?' — '+esc(bits):''}</div>${o.nota?`<div class="dev-sub">${esc(o.nota.slice(0,90))}${o.nota.length>90?'…':''}</div>`:''}</div></div>`; });
+  if (!evs) evs = `<div style="font-size:13px;color:var(--hint);padding:6px 0;">Nenhum evento neste dia.</div>`;
+  $('day-panel').innerHTML = `<div class="dpanel"><div class="dpanel-title">📅 ${title}</div>${evs}</div>`;
 }
 
 /* ═══════════════════════════════════════
-   INIT
+   INIT — aguarda Firebase, depois mostra login
 ═══════════════════════════════════════ */
-window.addEventListener('DOMContentLoaded', async ()=>{
-  await openDB();
-  setDates();
-  renderCal();
-  renderGStats();
+window.addEventListener('DOMContentLoaded', () => {
+  whenFbReady(() => {
+    // Esconde splash e mostra login
+    document.getElementById('fb-loading').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+  });
 });
+
+/* ═══════════════════════════════════════
+   PWA — Service Worker
+═══════════════════════════════════════ */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
 </script>
 </body>
 </html>
